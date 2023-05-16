@@ -1,0 +1,15 @@
+# Sample .env file
+# rename this file to .env and set the required values for the environment variables
+
+# this is a personal access token from developer.webex.com
+WEBEX_TOKEN=
+
+# client id, secret and refresh token of a service app
+SERVICE_APP_CLIENT_ID=
+SERVICE_APP_CLIENT_SECRET=
+SERVICE_APP_REFRESH_TOKEN=
+
+# client id, secret and scopes fof an integration
+INTEGRATION_CLIENT_ID=
+INTEGRATION_CLIENT_SECRET=
+INTEGRATION_SCOPES=

@@ -1,21 +1,19 @@
 #!/usr/bin/env python
 """
-Demonstration of how to call a Webex API endpoint using the SDK
+Demonstration of how to call a Webex API endpoint using the SDK with cached service app tokens
 """
-import os
-
 
 from dotenv import load_dotenv
 from wxc_sdk import WebexSimpleApi
 
+from service_app import get_tokens
+
 
 def main():
     load_dotenv()
+    tokens = get_tokens()
 
-    # after reading .env file all variables defined in the file are accessible as environment variables
-    access_token = os.getenv('WEBEX_TOKEN')
-
-    with WebexSimpleApi(tokens=access_token) as api:
+    with WebexSimpleApi(tokens=tokens) as api:
         locations = list(api.locations.list())
         print(f'{len(locations)} locations found')
         for location in locations:
