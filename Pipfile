@@ -7,6 +7,9 @@ name = "pypi"
 python-dotenv = "*"
 requests = "*"
 wxc-sdk = "*"
+flask-assets = "*"
+libsass = "*"
+jsmin = "*"
 
 [dev-packages]
 
