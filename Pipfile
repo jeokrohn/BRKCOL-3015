@@ -10,6 +10,7 @@ wxc-sdk = "*"
 flask = "*"
 authlib = "*"
 flask-session = "*"
+pyyaml = "*"
 
 [dev-packages]
 

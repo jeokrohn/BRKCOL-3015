@@ -1,8 +1,12 @@
 from authlib.integrations.flask_client import OAuth
-from flask import Blueprint, session, render_template, url_for, jsonify, redirect
+from flask import Blueprint, session, render_template, url_for, redirect, current_app
 from requests import Session
 
 __all__ = ['oauth', 'webex', 'core']
+
+from wxc_sdk.people import Person
+
+from .app_with_tokens import AppWithTokens
 
 oauth = OAuth()
 
@@ -46,18 +50,19 @@ core = Blueprint('core', __name__,
 
 
 @core.route('/')
-@core.route('/index.html')
 def index():
-    if not session.get('profile'):
+    if not (user := session.get('user')):
         return redirect(url_for('core.login'))
 
+    user: Person
     return render_template('index.html',
-                           title='BRKCOL-3015')
+                           title='BRKCOL-3015',
+                           user_display=user.display_name)
 
 
-@core.route('/login.html')
+@core.route('/login')
 def login():
-    session.pop('profile', None)
+    session.pop('user', None)
     return render_template('login.html',
                            title='BRKCOL-3015')
 
@@ -85,12 +90,18 @@ def authorize():
     # use access token to get actual user info
     with Session() as r_session:
         with r_session.get('https://webexapis.com/v1/userinfo',
-                         headers={'Authorization': f'Bearer {token["access_token"]}'}) as r:
+                           headers={'Authorization': f'Bearer {token["access_token"]}'}) as r:
             r.raise_for_status()
             profile = r.json()
 
+    # check whether the user exists
+    ca: AppWithTokens = current_app
+    email = profile['email']
+    users = list(ca.api.people.list(email=email))
+    if not users:
+        return render_template('login.html', error=f'user "{email}" not part of target org')
     # save user info to session ...
-    session['profile'] = profile
+    session['user'] = users[0]
     # ... and redirect to main page
     return redirect(url_for('core.index'))
 
