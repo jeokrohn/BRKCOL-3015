@@ -8,6 +8,8 @@ python-dotenv = "*"
 requests = "*"
 wxc-sdk = "*"
 flask = "*"
+authlib = "*"
+flask-session = "*"
 
 [dev-packages]
 

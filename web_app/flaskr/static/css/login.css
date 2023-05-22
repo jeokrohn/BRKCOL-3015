@@ -1,0 +1,11 @@
+.btn-webex {
+    /* Add your custom styles here */
+    color: #063a75;
+    background-color: #96d0ff;
+    border-color: #fff;
+}
+
+.btn-webex img {
+    width: 24px; /* Adjust the width as needed */
+    height: 24px; /* Adjust the height as needed */
+}
