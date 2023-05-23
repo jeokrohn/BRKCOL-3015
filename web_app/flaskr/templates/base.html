@@ -63,10 +63,54 @@
             </div>
         </div>
 
+        <--- Modal for user info-->
+        <div class="modal fade" id="userinfoModal" tabindex="-1" role="dialog" aria-labelledby="userinfoModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userinfoModalLabel">User Info</h5>
+                        <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>{{ user.display_name }} ({{ user.emails[0] }})</p>
+                        <p id="location_name"></p>
+                        <p>Phone numbers:</p>
+                        <table class="table" id="userInfoNumbers">
+                            <thead>
+                            <tr>
+                                <th scope="col">Number</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">primary</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <-- body will be dynamically created by refresh_user_info()
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" type="button" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {% include "body_js.html" %}
+        <script src="static/js/portal/user_info.js"></script>
 
     {% endblock %}
     </body>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#userinfoModal').on('show.bs.modal', function (event) {
+                refresh_user_info()
+            })})
+    </script>
+
 {% endblock %}
+
 
 </html>

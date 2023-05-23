@@ -1,5 +1,5 @@
 from authlib.integrations.flask_client import OAuth
-from flask import Blueprint, session, render_template, url_for, redirect, current_app
+from flask import Blueprint, session, render_template, url_for, redirect, current_app, Response
 from requests import Session
 
 __all__ = ['oauth', 'webex', 'core']
@@ -57,7 +57,8 @@ def index():
     user: Person
     return render_template('index.html',
                            title='BRKCOL-3015',
-                           user_display=user.display_name)
+                           user_display=user.display_name,
+                           user=user)
 
 
 @core.route('/login')
@@ -104,6 +105,23 @@ def authorize():
     session['user'] = users[0]
     # ... and redirect to main page
     return redirect(url_for('core.index'))
+
+
+@core.route('/userinfo')
+def user_info():
+    """
+    Get info for current user
+    """
+    user = session.get('user')
+    if not user:
+        return ''
+    user: Person
+    ca: AppWithTokens = current_app
+    user = ca.api.people.details(person_id=user.person_id, calling_data=True)
+    if user.location_id:
+        location = ca.api.locations.details(location_id=user.location_id)
+    return dict(numbers=[pn.dict(by_alias=True) for pn in user.phone_numbers],
+                location_name=user.location_id and location.name or '')
 
 
 # This is required to avoid net::ERR_INVALID_HTTP_RESPONSE (304) when client
