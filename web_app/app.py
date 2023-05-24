@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 import logging
-
-from dotenv import load_dotenv
+import os
 
 from flaskr import create_app
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('urllib3').setLevel(logging.INFO)
+    logging.getLogger('wxc_sdk.rest').setLevel(logging.INFO)
+    logging.getLogger('wxc_sdk.as_rest').setLevel(logging.INFO)
+    logging.getLogger('asyncio').setLevel(logging.INFO)
     app = create_app()
-    app.run(host='127.0.0.1', debug=True, threaded=True)
+    if os.path.exists('/proc/1/cgroup'):
+        # in Docker
+        host = '0.0.0.0'
+    else:
+        host = '127.0.0.1'
+    app.run(host=host, debug=True, threaded=True)

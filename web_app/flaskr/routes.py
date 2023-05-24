@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 from itertools import islice
 
@@ -16,6 +17,8 @@ from wxc_sdk.telephony.callqueue import CallQueue
 from wxc_sdk.telephony.hg_and_cq import Agent
 
 from .app_with_tokens import AppWithTokens
+
+log = logging.getLogger(__name__)
 
 oauth = OAuth()
 
@@ -61,7 +64,10 @@ core = Blueprint('core', __name__,
 @core.route('/')
 def index():
     if not (user := session.get('user')):
-        return redirect(url_for('core.login'))
+        url = url_for('core.login')
+        log.debug(f'"/" redirecting to {url}')
+        response = redirect(url_for('core.login'))
+        return response
 
     user: Person
     return render_template('index.html',
@@ -85,7 +91,9 @@ def authenticate():
     # redirect URL for /authorize endpoint
     redirect_uri = url_for('core.authorize', _external=True)
     # initiate flow by redirecting client
-    return webex.authorize_redirect(redirect_uri, response_type='code')
+    response = webex.authorize_redirect(redirect_uri, response_type='code')
+    log.debug(f'Initiate OIDC PKCE auth flow, redirecting to {response.headers["Location"]}')
+    return response
 
 
 @core.route('/authorize')
@@ -93,27 +101,35 @@ def authorize():
     """
     redirect URI for OIDC PKCE flow
     """
+    log.debug(f'/authorize: got code, getting id tokens')
     # get access tokens
     token = webex.authorize_access_token(response_type='id_token',
                                          # claims_options={'iss': {'values': ['https://idbroker-b-us.webex.com/idb']}}
                                          )
     # use access token to get actual user info
+    log.debug(f'/authorize: got id tokens, getting user info')
     with Session() as r_session:
         with r_session.get('https://webexapis.com/v1/userinfo',
                            headers={'Authorization': f'Bearer {token["access_token"]}'}) as r:
             r.raise_for_status()
             profile = r.json()
+    log.debug(f'/authorize: got user info: {profile}')
 
     # check whether the user exists
     ca: AppWithTokens = current_app
     email = profile['email']
+    log.debug(f'/authorize: verify that user "{email}" exists')
     users = list(ca.api.people.list(email=email))
     if not users:
         return render_template('login.html', error=f'user "{email}" not part of target org')
+
     # save user info to session ...
     session['user'] = users[0]
+
     # ... and redirect to main page
-    return redirect(url_for('core.index'))
+    url = url_for('core.index')
+    log.debug(f'/authorize: successful login, redirecting to {url}')
+    return redirect(url)
 
 
 @core.route('/userinfo')
@@ -126,11 +142,14 @@ def user_info():
         return ''
     user: Person
     ca: AppWithTokens = current_app
+    log.debug(f'/userinfp: getting user details')
     user = ca.api.people.details(person_id=user.person_id, calling_data=True)
     if not user.location_id:
         return dict(numbers=[],
                     location_name='')
+    log.debug(f'/userinfp: getting location details')
     location = ca.api.locations.details(location_id=user.location_id)
+    log.debug(f'/userinfp: getting user\'s numbers')
     numbers = list(ca.api.telephony.phone_numbers(owner_id=user.person_id))
     numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
     return dict(numbers=[n.dict() for n in numbers],
@@ -158,7 +177,7 @@ def user_phones():
         return {'success': False,
                 'message': f'{e}'}
     return {'success': True,
-            'rows': [[mac_with_colons(device.mac), device.product, device.connection_status]
+            'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
                      for device in devices
                      if device.product_type == 'phone']}
 

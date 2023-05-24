@@ -21,9 +21,9 @@ def create_app():
     app.config['WEBEX_CLIENT_ID'] = os.getenv('CLIENT_ID')
     app.config['WEBEX_CLIENT_SECRET'] = os.getenv('CLIENT_SECRET')
 
-    app.secret_key = base64.b64decode(os.getenv('FLASK_SECRET_KEY'))
+    app.secret_key = os.urandom(50)
     app.config['SESSION_TYPE'] = 'filesystem'
-    file_dir = os.getenv('FLASK_SESSION_FILE_DIR') or 'sessions'
+    file_dir = 'sessions'
     file_dir = abspath(join(dirname(__file__), '..', file_dir))
     if not isdir(file_dir):
         os.mkdir(file_dir)
