@@ -7,10 +7,10 @@ name = "pypi"
 python-dotenv = "*"
 requests = "*"
 wxc-sdk = "*"
-flask = "*"
 authlib = "*"
 flask-session = "*"
 pyyaml = "*"
+flask = {extras = ["async"], version = "*"}
 
 [dev-packages]
 

@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <--- Modal for user info-->
+        <!-- Modal for user info-->
         <div class="modal fade" id="userinfoModal" tabindex="-1" role="dialog" aria-labelledby="userinfoModalLabel"
              aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -81,13 +81,14 @@
                         <table class="table" id="userInfoNumbers">
                             <thead>
                             <tr>
-                                <th scope="col">Number</th>
+                                <th scope="col">Phone Number</th>
+                                <th scope="col">Extension</th>
+                                <th scope="col">Location</th>
                                 <th scope="col">Type</th>
-                                <th scope="col">primary</th>
                             </tr>
                             </thead>
                             <tbody>
-                            <-- body will be dynamically created by refresh_user_info()
+                            <!-- body will be dynamically created by refresh_user_info() -->
                             </tbody>
                         </table>
                     </div>
@@ -100,17 +101,11 @@
 
         {% include "body_js.html" %}
         <script src="static/js/portal/user_info.js"></script>
+        <script src="static/js/portal/user_phones.js"></script>
+        <script src="static/js/portal/user_queues.js"></script>
 
     {% endblock %}
     </body>
-    <script type="text/javascript">
-        $(document).ready(function () {
-            $('#userinfoModal').on('show.bs.modal', function (event) {
-                refresh_user_info()
-            })})
-    </script>
+
 
 {% endblock %}
-
-
-</html>

@@ -1,10 +1,19 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
+from itertools import islice
+
 from authlib.integrations.flask_client import OAuth
-from flask import Blueprint, session, render_template, url_for, redirect, current_app, Response
+from flask import Blueprint, session, render_template, url_for, redirect, current_app, Response, request
 from requests import Session
 
 __all__ = ['oauth', 'webex', 'core']
 
+from wxc_sdk.as_api import AsWebexSimpleApi
+
 from wxc_sdk.people import Person
+from wxc_sdk.rest import RestError
+from wxc_sdk.telephony.callqueue import CallQueue
+from wxc_sdk.telephony.hg_and_cq import Agent
 
 from .app_with_tokens import AppWithTokens
 
@@ -118,10 +127,97 @@ def user_info():
     user: Person
     ca: AppWithTokens = current_app
     user = ca.api.people.details(person_id=user.person_id, calling_data=True)
-    if user.location_id:
-        location = ca.api.locations.details(location_id=user.location_id)
-    return dict(numbers=[pn.dict(by_alias=True) for pn in user.phone_numbers],
-                location_name=user.location_id and location.name or '')
+    if not user.location_id:
+        return dict(numbers=[],
+                    location_name='')
+    location = ca.api.locations.details(location_id=user.location_id)
+    numbers = list(ca.api.telephony.phone_numbers(owner_id=user.person_id))
+    numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
+    return dict(numbers=[n.dict() for n in numbers],
+                location_name=location.name)
+
+
+@core.route('/userphones')
+def user_phones():
+    """
+    Get phones of current user
+    """
+
+    def mac_with_colons(mac: str) -> str:
+        octets = (mac[i:i + 2] for i in range(0, len(mac), 2))
+        return ':'.join(octets)
+
+    user = session.get('user')
+    if not user:
+        return ''
+    user: Person
+    ca: AppWithTokens = current_app
+    try:
+        devices = list(ca.api.devices.list(person_id=user.person_id))
+    except RestError as e:
+        return {'success': False,
+                'message': f'{e}'}
+    return {'success': True,
+            'rows': [[mac_with_colons(device.mac), device.product, device.connection_status]
+                     for device in devices
+                     if device.product_type == 'phone']}
+
+
+@core.route('/userqueues', methods=['POST', 'GET'])
+async def user_queues():
+    """
+    Endpoint got the table of queues for a user
+        * GET: get data to put into the table
+            * queue name
+            * location name
+            * queue extension
+            * tuple (enabled, location and queue id)
+        * POST: upadte the joined state of the user in one queue
+    """
+    user = session.get('user')
+    if not user:
+        return ''
+    user: Person
+    ca: AppWithTokens = current_app
+    if request.method == 'GET':
+        async with AsWebexSimpleApi(tokens=ca.tokens) as api:
+            # get all call queues
+            queues = await api.telephony.callqueue.list()
+            # get details for all call queues
+            details = await asyncio.gather(*[api.telephony.callqueue.details(location_id=queue.location_id,
+                                                                             queue_id=queue.id)
+                                             for queue in queues])
+            details: list[CallQueue]
+        # identify queues the user is agent in
+        queues_with_user = [(queue, detail, agent)
+                            for detail, queue in zip(details, queues)
+                            if (agent := next((agent
+                                               for agent in detail.agents
+                                               if agent.agent_id == user.person_id),
+                                              None))]
+        queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
+        return {'success': True,
+                'rows': [[queue.name,
+                          queue.location_name,
+                          queue.extension,
+                          (agent.join_enabled, f'{queue.location_id}.{queue.id}', detail.allow_agent_join_enabled)]
+                         for queue, detail, agent in queues_with_user]}
+    elif request.method == 'POST':
+        """
+        Update agent join state for one queue
+        """
+        joined = request.json.get('checked')
+        location_id, queue_id = request.json.get('id').split('.')
+
+        # get queue info and update queue
+        detail = ca.api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
+        # find agent to modify
+        agent = next(ag for ag in detail.agents if ag.agent_id == user.person_id)
+        # set the new join state
+        agent.join_enabled = joined
+        # update the queue
+        ca.api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
+        return {'success': True}
 
 
 # This is required to avoid net::ERR_INVALID_HTTP_RESPONSE (304) when client
