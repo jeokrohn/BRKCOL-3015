@@ -9,7 +9,8 @@ SERVICE_APP_CLIENT_ID=
 SERVICE_APP_CLIENT_SECRET=
 SERVICE_APP_REFRESH_TOKEN=
 
-# client id, secret and scopes of an integration
+# client id, secret and scopes of an integration. For INTEGRATION_SCOPES you can also simply copy/paste
+# the "OAuth Authorization URL" from the integration details page. The scopes will be parsed from that URL
 INTEGRATION_CLIENT_ID=
 INTEGRATION_CLIENT_SECRET=
 INTEGRATION_SCOPES=

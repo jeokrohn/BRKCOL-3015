@@ -3,7 +3,7 @@
 Demonstration of how to call a Webex API endpoint using the SDK with cached integration tokens
 """
 import os
-from os.path import splitext, basename
+from os.path import splitext, basename, join, dirname
 
 from dotenv import load_dotenv
 
@@ -27,7 +27,7 @@ def get_tokens():
                               client_secret=client_secret,
                               scopes=scopes,
                               redirect_url='http://localhost:6001/redirect')
-    yml_path = f'{splitext(basename(__file__))[0]}.yml'
+    yml_path = join(dirname(__file__), 'int_tokens.yml')
     tokens = integration.get_cached_tokens_from_yml(yml_path=yml_path)
     return tokens
 

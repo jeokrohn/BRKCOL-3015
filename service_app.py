@@ -2,18 +2,16 @@
 Simple helper to work with service app tokens
 """
 import logging
-import sys
 from json import dumps, loads
 from os import getenv
-from os.path import basename, splitext, isfile
+from os.path import isfile, dirname, join
 from typing import Optional
 
 from dotenv import load_dotenv
-from yaml import safe_load, safe_dump
-
 from wxc_sdk import WebexSimpleApi
 from wxc_sdk.integration import Integration
 from wxc_sdk.tokens import Tokens
+from yaml import safe_load, safe_dump
 
 __all__ = ['get_tokens']
 
@@ -22,7 +20,7 @@ def yml_path() -> str:
     """
     Path to an YML file to cache service app refresh and access tokens
     """
-    return f'{splitext(basename(__file__))[0]}.yml'
+    return join(dirname(__file__), 'app_tokens.yml')
 
 
 def read_tokens_from_file() -> Optional[Tokens]:
