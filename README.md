@@ -67,24 +67,74 @@ a temporary webserver listening on this port to finish the OAuth flow.
 Then you need set these environment variables in your `.env` file:
 
 * `INTEGRATION_CLIENT_ID`: client id
-* `INTEGRATION_CLIENT_SECRET`: client secret, make sure to copy the secret immediately when creating the integration. The
+* `INTEGRATION_CLIENT_SECRET`: client secret, make sure to copy the secret immediately when creating the integration.
+  The
   secret is only displayed once and later can only be re-created, which changes the secret.
 * `INTEGRATION_SCOPES`: scopes defined for your integration. You can also simply copy/paste the "OAuth Authorization
   URL" from the integration details page. The scopes will be parsed from that URL
 
-The script when started for the first time will initiate an OAuth flow by redirecting the system browser to the required URL. A minimal web server is started waiting for the final redirect. With the authorization code obtained as the result of that flow access tokens are obtained and written to a local file (`int_tokens.yml`).
+The script when started for the first time will initiate an OAuth flow by redirecting the system browser to the required
+URL. A minimal web server is started waiting for the final redirect. With the authorization code obtained as the result
+of that flow access tokens are obtained and written to a local file (`int_tokens.yml`).
 
-When run again the cached tokens are read from that file. If the access token is close to the end of the lifetime a new access token is obtained using the refresh token.
+When run again the cached tokens are read from that file. If the access token is close to the end of the lifetime a new
+access token is obtained using the refresh token.
 
 This animation shows the execution of this script:
 
 ![](.README_images/integration%20tokens.gif)
 
-# Examples
+# The web application
 
-# Web app
+The folder `web_app` contains an example of a simple user portal for Webex Calling users. The web app requires these
+environment variables to be set in the `.env` file in the `web_app` directory. You can use the `.env (sample)` file as a
+template.
 
-file tree
+* CLIENT_ID: client id of an integration to be used for "Login with Webex". The integration does not have to have any
+  meaningful scopes. Can be the same integration that has been created for the `list_locations_sdk_int_tokens.py`
+  example.
+* CLIENT_SECRET: client secret of the same integration
+* SERVICE_APP_CLIENT_ID: client id of service app the web app will use to drive the Webex APIs. This and the following
+  two parameters are obtained as part of the service app authorization as described
+  here: https://developer.webex.com/docs/service-app#service-app-creation-admin-flow
+* SERVICE_APP_CLIENT_SECRET: client secret
+* SERVICE_APP_REFRESH_TOKEN: refresh token.
+
+The service app requires these scopes for the demo app to work properly. Make sure to select these scopes when creating
+the service app on developer.webex.com.
+
+* `Identity:one_time_password`
+* `spark-admin:devices_read`
+* `identity:placeonetimepassword_create`
+* `spark:people_read`
+* `spark:devices_write`
+* `spark-admin:telephony_config_read`
+* `spark-admin:telephony_config_write`
+* `spark:devices_read`
+* `spark-admin:devices_write`
+* `spark-admin:people_read`
+
+With the parameters in the `.env` file set there are two options to start the local web server:
+
+1) execute the `app.py` script in the `web_app` folder
+2) start the web server in a Docker container. This requires that Docker is installed on the host machine. With Docker
+   installed the server can be started by `docker-compose up -d` followed by `docker-compose logs -f` to see the logs.
+   The animation below shows how the output of this should look like.
+
+![](.README_images/start%20docker.gif)
+
+With the local web server started, either by executing `app.py` or by running the server in a Docker container, you can
+point your web browser to http://localhost:5000. This should redirect you to a page from where you can initiate the
+login via Webex. After successfully authenticating as a Webex Calling user within the organization you created the
+service app tokens for you should get to the Dashboard that shows the phones of the users and the call queues the user
+is an agent in. In the last column of the call queue table the user can then join and unjoin each queue (if that is
+allowed). If you enable the developer console of the browser you can monitor the network activity which also shows the
+Ajax requests from the client side Javascript logic.
+
+![](.README_images/portal%20access.gif)
+
+
+This is the overall project structure of the web app:
 
     ├── app.py - stub to start local dev server
     └── flaskr
