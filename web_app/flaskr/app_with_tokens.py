@@ -13,6 +13,14 @@ __all__ = ['AppWithTokens']
 
 class AppWithTokens(Flask):
 
+    """
+    A child class of a Flask app with a WebexSimpleApi instance using service app tokens.
+    Requires that service app credentials are set in these environment variables:
+        * SERVICE_APP_REFRESH_TOKEN
+        * SERVICE_APP_CLIENT_ID
+        * SERVICE_APP_CLIENT_SECRET
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tokens = self.get_tokens()
@@ -57,6 +65,7 @@ class AppWithTokens(Flask):
         # .. or create new access token using refresh token
         if tokens is None:
             tokens = self.get_access_token()
+        # get a new access token if remaining lifetime is less than a day
         if tokens.remaining < 24 * 60 * 60:
             tokens = self.get_access_token()
         return tokens

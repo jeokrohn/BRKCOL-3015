@@ -1,22 +1,19 @@
 import asyncio
 import logging
-from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
-from itertools import islice
+from urllib.parse import urlparse
 
 from authlib.integrations.flask_client import OAuth
-from flask import Blueprint, session, render_template, url_for, redirect, current_app, Response, request
+from flask import Blueprint, session, render_template, url_for, redirect, current_app, request
 from requests import Session
-
-__all__ = ['oauth', 'webex', 'core']
-
 from wxc_sdk.as_api import AsWebexSimpleApi
-
 from wxc_sdk.people import Person
 from wxc_sdk.rest import RestError
 from wxc_sdk.telephony.callqueue import CallQueue
 from wxc_sdk.telephony.hg_and_cq import Agent
 
 from .app_with_tokens import AppWithTokens
+
+__all__ = ['oauth', 'core']
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +44,7 @@ oauth = OAuth()
 #                                               'code_challenge_method': 'S256',
 #                                               })
 
+# register Webex OIDC provider
 webex = oauth.register('webex',
                        # server_metadata_url='https://webexapis.com/v1/.well-known/openid-configuration',
                        access_token_url='https://webexapis.com/v1/access_token',
@@ -89,10 +87,14 @@ def authenticate():
     Initiate OIDC PKCE auth flow
     """
     # redirect URL for /authorize endpoint
-    redirect_uri = url_for('core.authorize', _external=True)
+    # hardcoded localhost redirect URI to make sure that the redirection works with a Docker container. We can't have
+    # Docker container local IP addresses in the redirect URI
+    redirect_uri = request.url.replace('authenticate', 'authorize')
+    # redirect_uri = url_for('core.authorize', _external=True)
+
     # initiate flow by redirecting client
     response = webex.authorize_redirect(redirect_uri, response_type='code')
-    log.debug(f'Initiate OIDC PKCE auth flow, redirecting to {response.headers["Location"]}')
+    log.debug(f'Initiate OIDC PKCE auth flow on "{request.url}", redirecting to {response.headers["Location"]}')
     return response
 
 
