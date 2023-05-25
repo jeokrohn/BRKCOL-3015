@@ -1,3 +1,5 @@
+# rename this file to .env and set the required values
+
 # client id and secret of an integration to be used for "Login with Webex"
 # the integration does not have to have any meaningful scopes
 CLIENT_ID=
@@ -5,8 +7,7 @@ CLIENT_SECRET=
 
 # client id, secret and refresh token of a service app
 # the service app needs these scopes: 
-#   * spark:kms 
-#   * Identity:one_time_password 
+#   * Identity:one_time_password
 #   * spark-admin:devices_read 
 #   * identity:placeonetimepassword_create
 #   * spark:people_read 
