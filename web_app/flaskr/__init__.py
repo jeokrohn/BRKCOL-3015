@@ -1,20 +1,18 @@
-import base64
 import os
 from os.path import isdir, dirname, join, abspath
 
 from dotenv import load_dotenv
-
-__all__ = ['create_app', 'AppWithTokens']
-
 from flask_session import Session
 
 from .app_with_tokens import AppWithTokens
 
+__all__ = ['create_app']
+
 
 def create_app():
     # load .env from one level up
-    env_pah = abspath(join(dirname(__file__), '..', '.env'))
-    load_dotenv(env_pah)
+    env_path = abspath(join(dirname(__file__), '..', '.env'))
+    load_dotenv(env_path)
     app = AppWithTokens(__name__, static_folder=None)
 
     app.config['TEMPLATES_AUTO_RELOAD'] = True
