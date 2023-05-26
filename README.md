@@ -145,6 +145,7 @@ This is the overall project structure of the web app:
         │   ├── css
         │   │   ├── datatables.css
         │   │   ├── login.css
+        │   │   ├── nunito.css
         │   │   └── sb-admin-2.css
         │   ├── font-awesome-free
         │   │   ├── css
@@ -154,19 +155,11 @@ This is the overall project structure of the web app:
         │   │       ├── fa-brands-400.svg
         │   │       ├── fa-brands-400.ttf
         │   │       ├── fa-brands-400.woff
-        │   │       ├── fa-brands-400.woff2
-        │   │       ├── fa-regular-400.eot
-        │   │       ├── fa-regular-400.svg
-        │   │       ├── fa-regular-400.ttf
-        │   │       ├── fa-regular-400.woff
-        │   │       ├── fa-regular-400.woff2
-        │   │       ├── fa-solid-900.eot
-        │   │       ├── fa-solid-900.svg
-        │   │       ├── fa-solid-900.ttf
-        │   │       ├── fa-solid-900.woff
-        │   │       └── fa-solid-900.woff2
+        │   │       ...
+        │   ├── fonts
+        │   │   ├── nunito-v25-latin-200.woff2
+        │   │   ...
         │   ├── img
-        │   │   ├── undraw_posting_photo.svg
         │   │   ├── undraw_profile.svg
         │   │   ├── undraw_profile_1.svg
         │   │   ├── undraw_profile_2.svg
