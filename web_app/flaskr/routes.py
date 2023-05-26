@@ -7,6 +7,7 @@ from requests import Session
 from wxc_sdk.as_api import AsWebexSimpleApi
 from wxc_sdk.locations import Location
 from wxc_sdk.people import Person
+from wxc_sdk.person_settings.call_intercept import InterceptSetting
 from wxc_sdk.rest import RestError
 from wxc_sdk.telephony import NumberListPhoneNumber
 from wxc_sdk.telephony.callqueue import CallQueue
@@ -246,6 +247,41 @@ async def user_queues():
         # update the queue
         ca.api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
         return {'success': True}
+
+
+@core.route('/useroptions', methods=['POST', 'GET'])
+async def user_options():
+    """
+    Endpoint to get/update user options
+    For now only a single
+    """
+    user = session.get('user')
+    if not user:
+        return {'success': False}
+    user: Person
+    ca: AppWithTokens = current_app
+    async with AsWebexSimpleApi(tokens=ca.tokens) as api:
+        if request.method == 'GET':
+            call_intercept, call_waiting = await asyncio.gather(
+                api.person_settings.call_intercept.read(person_id=user.person_id),
+                api.person_settings.call_waiting.read(person_id=user.person_id))
+            call_intercept: InterceptSetting
+            call_waiting: bool
+            return {'success': True,
+                    'callIntercept': call_intercept.enabled,
+                    'callWaiting': call_waiting}
+        elif request.method == 'POST':
+            checked = request.json.get('checked')
+            checkbox_id = request.json.get('id')
+            if checkbox_id == 'callIntercept':
+                update = InterceptSetting(enabled=checked)
+                await api.person_settings.call_intercept.configure(person_id=user.person_id, intercept=update)
+            elif checkbox_id =='callWaiting':
+                await api.person_settings.call_waiting.configure(person_id=user.person_id, enabled=checked)
+            else:
+                return {'success': False, 'message': f'unexpected checkbox id "{checkbox_id}"'}
+            return {'success': True}
+    return {'success': False}
 
 
 # This is required to avoid net::ERR_INVALID_HTTP_RESPONSE (304) when client

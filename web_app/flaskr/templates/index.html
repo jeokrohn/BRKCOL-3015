@@ -5,6 +5,25 @@
         <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
     </div>
 
+    <!-- card with user settings -->
+    <div class="row">
+        <div class="col-xl-8 col-lg-7 mb-4" id="">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-header py-3">Options</div>
+                <div class="card-body" id="userOptions">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="callIntercept">
+                        <label class="form-check-label" for="callIntercept">Call intercept</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="callWaiting">
+                        <label class="form-check-label" for="callWaiting">Call waiting</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- phones -->
     <div class="row">
         <div class="col-xl-8 col-lg-7 mb-4" id="phoneCard">
@@ -93,10 +112,10 @@
                                 checked = ""
                             }
                             return '<input type="checkbox" name="id[]" value="' + $('<div/>').text(location_and_queue_id).html() + '"' + checked + '>';
-                        }else {
-                            if (is_checked){
+                        } else {
+                            if (is_checked) {
                                 join_text = 'joined'
-                            } else{
+                            } else {
                                 join_text = 'not joined'
                             }
                             return $('<div/>').text(join_text).html()
@@ -114,9 +133,24 @@
                     url: '/userqueues',
                     data: JSON.stringify({checked: this.checked, id: this.value}),
                     contentType: "application/json; charset=utf-8"
+                }).then(function(data){
+                    console.log("userqueues response", data)
                 })
             });
             update_user_queues()
+
+            // Handle clicks in user options card
+            $('#userOptions').on('change', 'input[type="checkbox"]', function () {
+                $.ajax({
+                    type: 'POST',
+                    url: '/useroptions',
+                    data: JSON.stringify({checked: this.checked, id: this.id}),
+                    contentType: "application/json; charset=utf-8"
+                }).then(function(data){
+                    console.log("useroptions response", data)
+                })
+            });
+            refresh_user_options()
 
         });
     </script>
