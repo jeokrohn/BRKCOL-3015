@@ -1,13 +1,14 @@
 import asyncio
 import logging
-from urllib.parse import urlparse
 
 from authlib.integrations.flask_client import OAuth
 from flask import Blueprint, session, render_template, url_for, redirect, current_app, request
 from requests import Session
 from wxc_sdk.as_api import AsWebexSimpleApi
+from wxc_sdk.locations import Location
 from wxc_sdk.people import Person
 from wxc_sdk.rest import RestError
+from wxc_sdk.telephony import NumberListPhoneNumber
 from wxc_sdk.telephony.callqueue import CallQueue
 from wxc_sdk.telephony.hg_and_cq import Agent
 
@@ -63,20 +64,22 @@ core = Blueprint('core', __name__,
 def index():
     if not (user := session.get('user')):
         url = url_for('core.login')
-        log.debug(f'"/" redirecting to {url}')
+        log.debug(f'"/": redirecting to {url}')
         response = redirect(url_for('core.login'))
         return response
 
     user: Person
+    log.debug(f'"/": rendering index.html')
     return render_template('index.html',
                            title='BRKCOL-3015',
-                           user_display=user.display_name,
                            user=user)
 
 
 @core.route('/login')
 def login():
+    log.debug(f'"/login": clearing user context')
     session.pop('user', None)
+    log.debug(f'"/login": rendering index.html')
     return render_template('login.html',
                            title='BRKCOL-3015')
 
@@ -94,7 +97,8 @@ def authenticate():
 
     # initiate flow by redirecting client
     response = webex.authorize_redirect(redirect_uri, response_type='code')
-    log.debug(f'Initiate OIDC PKCE auth flow on "{request.url}", redirecting to {response.headers["Location"]}')
+    log.debug(f'"/authenticate": Initiate OIDC PKCE auth flow on "{request.url}", redirecting to '
+              f'{response.headers["Location"]}')
     return response
 
 
@@ -103,39 +107,42 @@ def authorize():
     """
     redirect URI for OIDC PKCE flow
     """
-    log.debug(f'/authorize: got code, getting id tokens')
+    log.debug(f'"/authorize": got code, getting id tokens')
     # get access tokens
     token = webex.authorize_access_token(response_type='id_token',
                                          # claims_options={'iss': {'values': ['https://idbroker-b-us.webex.com/idb']}}
                                          )
     # use access token to get actual user info
-    log.debug(f'/authorize: got id tokens, getting user info')
+    log.debug(f'"/authorize": got id tokens, getting user info')
     with Session() as r_session:
         with r_session.get('https://webexapis.com/v1/userinfo',
                            headers={'Authorization': f'Bearer {token["access_token"]}'}) as r:
             r.raise_for_status()
             profile = r.json()
-    log.debug(f'/authorize: got user info: {profile}')
+    log.debug(f'"/authorize": got user info: {profile}')
 
     # check whether the user exists
     ca: AppWithTokens = current_app
     email = profile['email']
-    log.debug(f'/authorize: verify that user "{email}" exists')
-    users = list(ca.api.people.list(email=email))
-    if not users:
-        return render_template('login.html', error=f'user "{email}" not part of target org')
+    log.debug(f'"/authorize": verify that user "{email}" exists as calling user')
+    user = next((user
+                 for user in ca.api.people.list(email=email, calling_data=True)
+                 if user.emails[0] == email and user.location_id is not None),
+                None)
+    if user is None:
+        return render_template('login.html', error=f'user "{email}" not part of target org or not a calling user')
 
     # save user info to session ...
-    session['user'] = users[0]
+    session['user'] = user
 
     # ... and redirect to main page
     url = url_for('core.index')
-    log.debug(f'/authorize: successful login, redirecting to {url}')
+    log.debug(f'"/authorize": successful login, redirecting to {url}')
     return redirect(url)
 
 
 @core.route('/userinfo')
-def user_info():
+async def user_info():
     """
     Get info for current user
     """
@@ -144,15 +151,15 @@ def user_info():
         return ''
     user: Person
     ca: AppWithTokens = current_app
-    log.debug(f'/userinfp: getting user details')
-    user = ca.api.people.details(person_id=user.person_id, calling_data=True)
-    if not user.location_id:
-        return dict(numbers=[],
-                    location_name='')
-    log.debug(f'/userinfp: getting location details')
-    location = ca.api.locations.details(location_id=user.location_id)
-    log.debug(f'/userinfp: getting user\'s numbers')
-    numbers = list(ca.api.telephony.phone_numbers(owner_id=user.person_id))
+    async with AsWebexSimpleApi(tokens=ca.tokens) as api:
+        # get location details and number for user
+        log.debug(f'"/userinfo": getting location details and numbers')
+        location, numbers = await asyncio.gather(
+            api.locations.details(location_id=user.location_id),
+            api.telephony.phone_numbers(owner_id=user.person_id)
+        )
+        location: Location
+        numbers: list[NumberListPhoneNumber]
     numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
     return dict(numbers=[n.dict() for n in numbers],
                 location_name=location.name)
