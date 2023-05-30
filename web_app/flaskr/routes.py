@@ -182,10 +182,13 @@ def user_phones():
     user: Person
     ca: AppWithTokens = current_app
     try:
+        log.debug(f'"/userphones": getting user phones')
         devices = list(ca.api.devices.list(person_id=user.person_id))
     except RestError as e:
+        log.error(f'"/userphones": getting user phones failed: {e}')
         return {'success': False,
                 'message': f'{e}'}
+    log.debug(f'"/userphones": returning device data')
     return {'success': True,
             'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
                      for device in devices
@@ -211,8 +214,10 @@ async def user_queues():
     if request.method == 'GET':
         async with AsWebexSimpleApi(tokens=ca.tokens) as api:
             # get all call queues
+            log.debug(f'"/userqueues": getting list of call queues')
             queues = await api.telephony.callqueue.list()
             # get details for all call queues
+            log.debug(f'"/userqueues": getting call queue details')
             details = await asyncio.gather(*[api.telephony.callqueue.details(location_id=queue.location_id,
                                                                              queue_id=queue.id)
                                              for queue in queues])
@@ -225,6 +230,7 @@ async def user_queues():
                                                if agent.agent_id == user.person_id),
                                               None))]
         queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
+        log.debug(f'"/userqueues": returning user/queue information')
         return {'success': True,
                 'rows': [[queue.name,
                           queue.location_name,
@@ -239,13 +245,16 @@ async def user_queues():
         location_id, queue_id = request.json.get('id').split('.')
 
         # get queue info and update queue
+        log.debug(f'"/userqueues": getting call queue details')
         detail = ca.api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
         # find agent to modify
         agent = next(ag for ag in detail.agents if ag.agent_id == user.person_id)
         # set the new join state
         agent.join_enabled = joined
         # update the queue
+        log.debug(f'"/userqueues": updating call queue details for "{detail.name}"')
         ca.api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
+        log.debug(f'"/userqueues": success')
         return {'success': True}
 
 
@@ -262,11 +271,13 @@ async def user_options():
     ca: AppWithTokens = current_app
     async with AsWebexSimpleApi(tokens=ca.tokens) as api:
         if request.method == 'GET':
+            log.debug(f'"/useroptions": getting call intercept and call waiting status')
             call_intercept, call_waiting = await asyncio.gather(
                 api.person_settings.call_intercept.read(person_id=user.person_id),
                 api.person_settings.call_waiting.read(person_id=user.person_id))
             call_intercept: InterceptSetting
             call_waiting: bool
+            log.debug(f'"/useroptions": returning intercept and call waiting status')
             return {'success': True,
                     'callIntercept': call_intercept.enabled,
                     'callWaiting': call_waiting}
@@ -275,11 +286,14 @@ async def user_options():
             checkbox_id = request.json.get('id')
             if checkbox_id == 'callIntercept':
                 update = InterceptSetting(enabled=checked)
+                log.debug(f'"/useroptions": updating call intercept: {checked}')
                 await api.person_settings.call_intercept.configure(person_id=user.person_id, intercept=update)
             elif checkbox_id =='callWaiting':
+                log.debug(f'"/useroptions": updating call waiting: {checked}')
                 await api.person_settings.call_waiting.configure(person_id=user.person_id, enabled=checked)
             else:
                 return {'success': False, 'message': f'unexpected checkbox id "{checkbox_id}"'}
+            log.debug(f'"/useroptions": return success')
             return {'success': True}
     return {'success': False}
 
