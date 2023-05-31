@@ -16,8 +16,13 @@ def create_app():
     app = AppWithTokens(__name__, static_folder=None)
 
     app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+    # client id and secret for Webex OIDC client
     app.config['WEBEX_CLIENT_ID'] = os.getenv('CLIENT_ID')
     app.config['WEBEX_CLIENT_SECRET'] = os.getenv('CLIENT_SECRET')
+
+    # session lifetime: 10 min
+    app.config['PERMANENT_SESSION_LIFETIME'] = 600
 
     app.secret_key = os.urandom(50)
     app.config['SESSION_TYPE'] = 'filesystem'
