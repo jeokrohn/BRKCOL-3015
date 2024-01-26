@@ -46,7 +46,9 @@ oauth = OAuth()
 #                                               'code_challenge_method': 'S256',
 #                                               })
 
-# register Webex OIDC provider
+# register Webex OIDC provider used for login via Webex
+# documentation: https://developer.webex.com/docs/login-with-webex
+# endpoint URLs are here: https://developer.webex.com/docs/login-with-webex#oauth-20-and-openid-connect-api-endpoints
 webex = oauth.register('webex',
                        # server_metadata_url='https://webexapis.com/v1/.well-known/openid-configuration',
                        access_token_url='https://webexapis.com/v1/access_token',
@@ -204,7 +206,7 @@ async def user_queues():
             * location name
             * queue extension
             * tuple (enabled, location and queue id)
-        * POST: upadte the joined state of the user in one queue
+        * POST: update the joined state of the user in one queue
     """
     user = session.get('user')
     if not user:

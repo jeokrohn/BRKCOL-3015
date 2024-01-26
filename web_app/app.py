@@ -7,8 +7,8 @@ from flaskr import create_app
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.INFO)
-    logging.getLogger('wxc_sdk.rest').setLevel(logging.DEBUG)
-    logging.getLogger('wxc_sdk.as_rest').setLevel(logging.DEBUG)
+    logging.getLogger('wxc_sdk.rest').setLevel(logging.INFO)
+    logging.getLogger('wxc_sdk.as_rest').setLevel(logging.INFO)
     logging.getLogger('asyncio').setLevel(logging.INFO)
     app = create_app()
     if os.path.exists('/proc/1/cgroup'):
