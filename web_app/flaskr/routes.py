@@ -164,7 +164,7 @@ async def user_info():
         location: Location
         numbers: list[NumberListPhoneNumber]
     numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
-    return dict(numbers=[n.dict() for n in numbers],
+    return dict(numbers=[n.model_dump(mode='json') for n in numbers],
                 location_name=location.name)
 
 
@@ -290,7 +290,7 @@ async def user_options():
                 update = InterceptSetting(enabled=checked)
                 log.debug(f'"/useroptions": updating call intercept: {checked}')
                 await api.person_settings.call_intercept.configure(person_id=user.person_id, intercept=update)
-            elif checkbox_id =='callWaiting':
+            elif checkbox_id == 'callWaiting':
                 log.debug(f'"/useroptions": updating call waiting: {checked}')
                 await api.person_settings.call_waiting.configure(person_id=user.person_id, enabled=checked)
             else:
