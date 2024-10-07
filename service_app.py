@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Simple helper to work with service app tokens
 """
@@ -34,7 +35,7 @@ def read_tokens_from_file() -> Optional[Tokens]:
     try:
         with open(path, mode='r') as f:
             data = safe_load(f)
-        tokens = Tokens.parse_obj(data)
+        tokens = Tokens.model_validate(data)
     except Exception:
         return None
     return tokens
@@ -45,7 +46,7 @@ def write_tokens_to_file(tokens: Tokens):
     Write service app tokens to cache (YML file)
     """
     with open(yml_path(), mode='w') as f:
-        safe_dump(tokens.dict(exclude_none=True), f)
+        safe_dump(tokens.model_dump(exclude_none=True), f)
 
 
 def get_access_token() -> Tokens:
