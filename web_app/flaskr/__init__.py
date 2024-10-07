@@ -35,6 +35,8 @@ def create_app():
     from .routes import core, oauth
 
     app.register_blueprint(core, url_prefix='/')
+
+    # add server side sessions to the app
     sess = Session(app)
     sess.init_app(app)
 
