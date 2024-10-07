@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from urllib.parse import urlparse
 
 from authlib.integrations.flask_client import OAuth
 from flask import Blueprint, session, render_template, url_for, redirect, current_app, request
@@ -16,6 +17,8 @@ from wxc_sdk.telephony.hg_and_cq import Agent
 from .app_with_tokens import AppWithTokens
 
 __all__ = ['oauth', 'core']
+
+TITLE = 'CLS-3215'
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +66,19 @@ core = Blueprint('core', __name__,
                  static_folder='static')
 
 
+@core.before_request
+def log_request():
+    if request.is_json:
+        log.debug(f'{request.method} {urlparse(request.url).path}: {request.get_json()}')
+
+
+@core.after_request
+def log_response(response):
+    if response.is_json:
+        log.debug(f'{request.method} {urlparse(request.url).path} {response.status}: {response.get_json()}')
+    return response
+
+
 @core.route('/')
 def index():
     if not (user := session.get('user')):
@@ -74,7 +90,7 @@ def index():
     user: Person
     log.debug(f'"/": rendering index.html')
     return render_template('index.html',
-                           title='BRKCOL-3015',
+                           title=TITLE,
                            user=user)
 
 
@@ -84,7 +100,7 @@ def login():
     session.pop('user', None)
     log.debug(f'"/login": rendering index.html')
     return render_template('login.html',
-                           title='BRKCOL-3015')
+                           title=TITLE)
 
 
 @core.route('/authenticate')
@@ -200,7 +216,7 @@ def user_phones():
 @core.route('/userqueues', methods=['POST', 'GET'])
 async def user_queues():
     """
-    Endpoint got the table of queues for a user
+    Endpoint to get data for the table of queues for a user
         * GET: get data to put into the table
             * queue name
             * location name
@@ -213,13 +229,14 @@ async def user_queues():
         return ''
     user: Person
     ca: AppWithTokens = current_app
+    path = urlparse(request.url).path
     if request.method == 'GET':
         async with AsWebexSimpleApi(tokens=ca.tokens) as api:
             # get all call queues
-            log.debug(f'"/userqueues": getting list of call queues')
+            log.debug(f'"{path}": getting list of call queues')
             queues = await api.telephony.callqueue.list()
             # get details for all call queues
-            log.debug(f'"/userqueues": getting call queue details')
+            log.debug(f'"{path}": getting call queue details')
             details = await asyncio.gather(*[api.telephony.callqueue.details(location_id=queue.location_id,
                                                                              queue_id=queue.id)
                                              for queue in queues])
@@ -232,7 +249,7 @@ async def user_queues():
                                                if agent.agent_id == user.person_id),
                                               None))]
         queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
-        log.debug(f'"/userqueues": returning user/queue information')
+        log.debug(f'"{path}": returning user/queue information')
         return {'success': True,
                 'rows': [[queue.name,
                           queue.location_name,
@@ -247,16 +264,16 @@ async def user_queues():
         location_id, queue_id = request.json.get('id').split('.')
 
         # get queue info and update queue
-        log.debug(f'"/userqueues": getting call queue details')
+        log.debug(f'"{path}": getting call queue details')
         detail = ca.api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
         # find agent to modify
         agent = next(ag for ag in detail.agents if ag.agent_id == user.person_id)
         # set the new join state
         agent.join_enabled = joined
         # update the queue
-        log.debug(f'"/userqueues": updating call queue details for "{detail.name}"')
+        log.debug(f'"{path}": updating call queue details for "{detail.name}"')
         ca.api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
-        log.debug(f'"/userqueues": success')
+        log.debug(f'"{path}": success')
         return {'success': True}
 
 
@@ -271,15 +288,16 @@ async def user_options():
         return {'success': False}
     user: Person
     ca: AppWithTokens = current_app
+    path = urlparse(request.url).path
     async with AsWebexSimpleApi(tokens=ca.tokens) as api:
         if request.method == 'GET':
-            log.debug(f'"/useroptions": getting call intercept and call waiting status')
+            log.debug(f'"{path} getting call intercept and call waiting status')
             call_intercept, call_waiting = await asyncio.gather(
-                api.person_settings.call_intercept.read(person_id=user.person_id),
-                api.person_settings.call_waiting.read(person_id=user.person_id))
+                api.person_settings.call_intercept.read(entity_id=user.person_id),
+                api.person_settings.call_waiting.read(entity_id=user.person_id))
             call_intercept: InterceptSetting
             call_waiting: bool
-            log.debug(f'"/useroptions": returning intercept and call waiting status')
+            log.debug(f'"{path}": returning intercept and call waiting status')
             return {'success': True,
                     'callIntercept': call_intercept.enabled,
                     'callWaiting': call_waiting}
@@ -288,14 +306,14 @@ async def user_options():
             checkbox_id = request.json.get('id')
             if checkbox_id == 'callIntercept':
                 update = InterceptSetting(enabled=checked)
-                log.debug(f'"/useroptions": updating call intercept: {checked}')
-                await api.person_settings.call_intercept.configure(person_id=user.person_id, intercept=update)
+                log.debug(f'"{path}": updating call intercept: {checked}')
+                await api.person_settings.call_intercept.configure(entity_id=user.person_id, intercept=update)
             elif checkbox_id == 'callWaiting':
-                log.debug(f'"/useroptions": updating call waiting: {checked}')
-                await api.person_settings.call_waiting.configure(person_id=user.person_id, enabled=checked)
+                log.debug(f'"{path}": updating call waiting: {checked}')
+                await api.person_settings.call_waiting.configure(entity_id=user.person_id, enabled=checked)
             else:
                 return {'success': False, 'message': f'unexpected checkbox id "{checkbox_id}"'}
-            log.debug(f'"/useroptions": return success')
+            log.debug(f'"{path}": return success')
             return {'success': True}
     return {'success': False}
 

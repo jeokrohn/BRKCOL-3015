@@ -7,7 +7,7 @@ function update_user_queues() {
     const status = card.querySelector("#status")
     status.textContent = "...getting queue information"
 
-    // get phones from server and update table
+    // get queue information from server and update table
     get_user_queues().then(function (data) {
         console.log(data)
 
