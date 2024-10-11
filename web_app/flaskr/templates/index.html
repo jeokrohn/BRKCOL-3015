@@ -32,6 +32,7 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered dt-responsive nowrap" id="userPhones">
+                        <!-- the table is empty and will be set in $(document).ready -->
                         </table>
                     </div>
                     <div class="row">
@@ -51,6 +52,7 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered dt-responsive nowrap" id="userQueues">
+                        <!-- the table is empty and will be will be set in $(document).ready -->
                         </table>
                     </div>
                     <div class="row">
@@ -98,10 +100,12 @@
                 // last column is rendered as checkboxes
                 // each checkbox value has the location and queue id of the queue
                 'columnDefs': [{
-                    'targets': 3,
-                    'orderable': false,
+                    'targets': 3,   // column 3
+                    'orderable': false, // sorting on this column is disabled (doesn't make sense
                     'className': 'dt-body-center',
+                    // render function for column 3
                     'render': function (data, type, full, meta) {
+                        // unpack the values from the data array
                         const is_checked = data[0]
                         const location_and_queue_id = data[1]
                         const allow_join_enabled = data[2]
@@ -111,8 +115,11 @@
                             } else {
                                 checked = ""
                             }
+                            // return a checkbox with the location and queue id as value
                             return '<input type="checkbox" name="id[]" value="' + $('<div/>').text(location_and_queue_id).html() + '"' + checked + '>';
                         } else {
+                            // allow_join_enabled is false, so the user cannot join/unjoin the queue
+                            // display a text instead of a checkbox
                             if (is_checked) {
                                 join_text = 'joined'
                             } else {

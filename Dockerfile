@@ -1,6 +1,6 @@
-FROM python:3.11-alpine as base
+FROM python:3.11-alpine AS base
 
-FROM base as python-deps
+FROM base AS python-deps
 
 RUN pip install pipenv
 RUN apk add git build-base libffi-dev
