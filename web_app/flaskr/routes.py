@@ -6,6 +6,7 @@ from authlib.integrations.flask_client import OAuth
 from flask import Blueprint, session, render_template, url_for, redirect, current_app, request
 from requests import Session
 from wxc_sdk.as_api import AsWebexSimpleApi
+from wxc_sdk.devices import ProductType
 from wxc_sdk.locations import Location
 from wxc_sdk.people import Person
 from wxc_sdk.person_settings.call_intercept import InterceptSetting
@@ -210,7 +211,7 @@ def user_phones():
     return {'success': True,
             'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
                      for device in devices
-                     if device.product_type == 'phone']}
+                     if device.product_type == ProductType.phone]}
 
 
 @core.route('/userqueues', methods=['POST', 'GET'])
