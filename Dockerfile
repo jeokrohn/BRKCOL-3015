@@ -22,6 +22,6 @@ WORKDIR /app
 # install app
 COPY web_app/app.py ./
 COPY web_app/.env ./
-COPY web_app/flaskr ./flaskr/
+COPY web_app/flask_app ./flaskr/
 
 ENTRYPOINT ["./app.py"]

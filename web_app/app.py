@@ -2,7 +2,7 @@
 import logging
 import os
 
-from flaskr import create_app
+from flask_app import create_app
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
