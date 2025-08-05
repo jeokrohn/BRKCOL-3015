@@ -1,0 +1,11 @@
+* convert API to FastAPI: Swagger, OpenAPI, API testing
+* Add more features to the portal
+    * simplified framework to add new features?
+    * admin functions for certain users
+    * config management using pydantic settings
+* docker compose
+    * gunicorn
+    * nginx
+    * redis for session management
+* better documentation of app
+
