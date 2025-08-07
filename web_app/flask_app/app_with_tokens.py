@@ -35,17 +35,18 @@ class AppWithTokens(Flask):
         path = self.yml_path()
         if not isfile(path):
             return None
+        # noinspection PyBroadException
         try:
             with open(path, mode='r') as f:
                 data = safe_load(f)
-            tokens = Tokens.parse_obj(data)
+            tokens = Tokens.model_validate(data)
         except Exception:
             return None
         return tokens
 
     def write_tokens_to_file(self, tokens: Tokens):
         with open(self.yml_path(), mode='w') as f:
-            safe_dump(tokens.dict(exclude_none=True), f)
+            safe_dump(tokens.model_dump(mode='json', exclude_none=True), f)
 
     def get_access_token(self) -> Tokens:
         tokens = Tokens(refresh_token=os.getenv('SERVICE_APP_REFRESH_TOKEN'))
@@ -60,12 +61,12 @@ class AppWithTokens(Flask):
         """
         Get tokens
         """
-        # try to read from file
+        # try to read from a file
         tokens = self.read_tokens_from_file()
-        # .. or create new access token using refresh token
+        # .. or create a new access token using refresh token
         if tokens is None:
             tokens = self.get_access_token()
-        # get a new access token if remaining lifetime is less than a day
+        # get a new access token if the remaining lifetime is less than a day
         if tokens.remaining < 24 * 60 * 60:
             tokens = self.get_access_token()
         return tokens
