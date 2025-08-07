@@ -1,5 +1,5 @@
 function get_user_queues() {
-    return $.ajax({type: 'GET', url: '/userqueues'})
+    return $.ajax({type: 'GET', url: '/api/userqueues'})
 }
 
 function update_user_queues() {
