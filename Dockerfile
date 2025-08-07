@@ -2,19 +2,32 @@ FROM python:3.11-alpine AS base
 
 FROM base AS python-deps
 
-RUN pip install pipenv
-RUN apk add git build-base libffi-dev
+# The uv installer requires curl (and certificates) to download the release archive
+RUN apk add curl ca-certificates
 
-# Install python dependencies in /.venv
-COPY Pipfile .
-COPY Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
 
-FROM base as runtime
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
+
+# install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Copy dependency files
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies
+RUN uv sync --locked --no-dev
+
+FROM base AS runtime
 
 # Copy virtual env from python-deps stage
-COPY --from=python-deps /.venv /.venv
-ENV PATH="/.venv/bin:$PATH"
+COPY --from=python-deps /.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # switch to workdir
 WORKDIR /app
@@ -22,6 +35,7 @@ WORKDIR /app
 # install app
 COPY web_app/app.py ./
 COPY web_app/.env ./
-COPY web_app/flask_app ./flaskr/
+COPY web_app/flask_app ./flask_app/
 
+# CMD ["python3"]
 ENTRYPOINT ["./app.py"]
