@@ -10,6 +10,7 @@ dependencies = [
     "flask-session",
     "pyyaml",
     "flask[async]",
+    "flask-restx>=1.3.0",
 ]
 
 [dependency-groups]

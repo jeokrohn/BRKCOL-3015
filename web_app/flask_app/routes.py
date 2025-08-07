@@ -1,20 +1,10 @@
-import asyncio
 import logging
 from urllib.parse import urlparse
 
 from authlib.integrations.flask_client import OAuth
 from flask import Blueprint, session, render_template, url_for, redirect, current_app, request
 from requests import Session
-from wxc_sdk.as_api import AsWebexSimpleApi
-from wxc_sdk.devices import ProductType
-from wxc_sdk.locations import Location
 from wxc_sdk.people import Person
-from wxc_sdk.person_settings.call_intercept import InterceptSetting
-from wxc_sdk.rest import RestError
-from wxc_sdk.telephony import NumberListPhoneNumber
-from wxc_sdk.telephony.callqueue import CallQueue
-from wxc_sdk.telephony.hg_and_cq import Agent
-
 from .app_with_tokens import AppWithTokens
 
 __all__ = ['oauth', 'core']
@@ -97,6 +87,7 @@ def index():
 
 @core.route('/login')
 def login():
+    # clear user context
     log.debug(f'"/login": clearing user context')
     session.pop('user', None)
     log.debug(f'"/login": rendering index.html')
@@ -150,7 +141,8 @@ def authorize():
                  if user.emails[0] == email and user.location_id is not None),
                 None)
     if user is None:
-        return render_template('login.html', error=f'user "{email}" not part of target org or not a calling user')
+        return render_template('login.html',
+                               error=f'user "{email}" not part of target org or not a calling user')
 
     # save user info to session ...
     session['user'] = user
@@ -159,164 +151,6 @@ def authorize():
     url = url_for('core.index')
     log.debug(f'"/authorize": successful login, redirecting to {url}')
     return redirect(url)
-
-
-@core.route('/userinfo')
-async def user_info():
-    """
-    Get info for current user
-    """
-    user = session.get('user')
-    if not user:
-        return ''
-    user: Person
-    ca: AppWithTokens = current_app
-    async with AsWebexSimpleApi(tokens=ca.tokens) as api:
-        # get location details and number for user
-        log.debug(f'"/userinfo": getting location details and numbers')
-        location, numbers = await asyncio.gather(
-            api.locations.details(location_id=user.location_id),
-            api.telephony.phone_numbers(owner_id=user.person_id)
-        )
-        location: Location
-        numbers: list[NumberListPhoneNumber]
-    numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
-    return dict(numbers=[n.model_dump(mode='json') for n in numbers],
-                location_name=location.name)
-
-
-@core.route('/userphones')
-def user_phones():
-    """
-    Get phones of current user
-    """
-
-    def mac_with_colons(mac: str) -> str:
-        octets = (mac[i:i + 2] for i in range(0, len(mac), 2))
-        return ':'.join(octets)
-
-    user = session.get('user')
-    if not user:
-        return ''
-    user: Person
-    ca: AppWithTokens = current_app
-    try:
-        log.debug(f'"/userphones": getting user phones')
-        devices = list(ca.api.devices.list(person_id=user.person_id))
-    except RestError as e:
-        log.error(f'"/userphones": getting user phones failed: {e}')
-        return {'success': False,
-                'message': f'{e}'}
-    log.debug(f'"/userphones": returning device data')
-    return {'success': True,
-            'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
-                     for device in devices
-                     if device.product_type == ProductType.phone]}
-
-
-@core.route('/userqueues', methods=['POST', 'GET'])
-async def user_queues():
-    """
-    Endpoint to get data for the table of queues for a user
-        * GET: get data to put into the table
-            * queue name
-            * location name
-            * queue extension
-            * tuple (enabled, location and queue id)
-        * POST: update the joined state of the user in one queue
-    """
-    user = session.get('user')
-    if not user:
-        return ''
-    user: Person
-    ca: AppWithTokens = current_app
-    path = urlparse(request.url).path
-    if request.method == 'GET':
-        async with AsWebexSimpleApi(tokens=ca.tokens) as api:
-            # get all call queues
-            log.debug(f'"{path}": getting list of call queues')
-            queues = await api.telephony.callqueue.list()
-            # get details for all call queues
-            log.debug(f'"{path}": getting call queue details')
-            details = await asyncio.gather(*[api.telephony.callqueue.details(location_id=queue.location_id,
-                                                                             queue_id=queue.id)
-                                             for queue in queues])
-            details: list[CallQueue]
-        # identify queues the user is agent in
-        queues_with_user = [(queue, detail, agent)
-                            for detail, queue in zip(details, queues)
-                            if (agent := next((agent
-                                               for agent in detail.agents
-                                               if agent.agent_id == user.person_id),
-                                              None))]
-        queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
-        log.debug(f'"{path}": returning user/queue information')
-        return {'success': True,
-                'rows': [[queue.name,
-                          queue.location_name,
-                          queue.extension,
-                          (agent.join_enabled, f'{queue.location_id}.{queue.id}', detail.allow_agent_join_enabled)]
-                         for queue, detail, agent in queues_with_user]}
-    elif request.method == 'POST':
-        """
-        Update agent join state for one queue
-        """
-        joined = request.json.get('checked')
-        location_id, queue_id = request.json.get('id').split('.')
-
-        # get queue info and update queue
-        log.debug(f'"{path}": getting call queue details')
-        detail = ca.api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
-        # find agent to modify
-        agent = next(ag for ag in detail.agents if ag.agent_id == user.person_id)
-        # set the new join state
-        agent.join_enabled = joined
-        # update the queue
-        log.debug(f'"{path}": updating call queue details for "{detail.name}"')
-        ca.api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
-        log.debug(f'"{path}": success')
-        return {'success': True}
-
-
-@core.route('/useroptions', methods=['POST', 'GET'])
-async def user_options():
-    """
-    Endpoint to get/update user options
-    For now only a single
-    """
-    user = session.get('user')
-    if not user:
-        return {'success': False}
-    user: Person
-    ca: AppWithTokens = current_app
-    path = urlparse(request.url).path
-    async with AsWebexSimpleApi(tokens=ca.tokens) as api:
-        if request.method == 'GET':
-            log.debug(f'"{path} getting call intercept and call waiting status')
-            call_intercept, call_waiting = await asyncio.gather(
-                api.person_settings.call_intercept.read(entity_id=user.person_id),
-                api.person_settings.call_waiting.read(entity_id=user.person_id))
-            call_intercept: InterceptSetting
-            call_waiting: bool
-            log.debug(f'"{path}": returning intercept and call waiting status')
-            return {'success': True,
-                    'callIntercept': call_intercept.enabled,
-                    'callWaiting': call_waiting}
-        elif request.method == 'POST':
-            checked = request.json.get('checked')
-            checkbox_id = request.json.get('id')
-            if checkbox_id == 'callIntercept':
-                update = InterceptSetting(enabled=checked)
-                log.debug(f'"{path}": updating call intercept: {checked}')
-                await api.person_settings.call_intercept.configure(entity_id=user.person_id, intercept=update)
-            elif checkbox_id == 'callWaiting':
-                log.debug(f'"{path}": updating call waiting: {checked}')
-                await api.person_settings.call_waiting.configure(entity_id=user.person_id, enabled=checked)
-            else:
-                return {'success': False, 'message': f'unexpected checkbox id "{checkbox_id}"'}
-            log.debug(f'"{path}": return success')
-            return {'success': True}
-    return {'success': False}
 
 
 # This is required to avoid net::ERR_INVALID_HTTP_RESPONSE (304) when client

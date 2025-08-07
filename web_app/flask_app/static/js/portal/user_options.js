@@ -1,5 +1,5 @@
 function get_user_options() {
-    return $.ajax({type: 'GET', url: '/useroptions'})
+    return $.ajax({type: 'GET', url: '/api/useroptions'})
 }
 
 function refresh_user_options() {

@@ -33,8 +33,10 @@ def create_app():
     app.config['SESSION_FILE_DIR'] = file_dir
 
     from .routes import core, oauth
+    from .api import apib
 
     app.register_blueprint(core, url_prefix='/')
+    app.register_blueprint(apib, url_prefix='/api')
 
     # add server side sessions to the app
     sess = Session(app)

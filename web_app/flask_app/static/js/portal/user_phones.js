@@ -1,5 +1,5 @@
 function get_user_phones() {
-    return $.ajax({type: 'GET', url: '/userphones'})
+    return $.ajax({type: 'GET', url: '/api/userphones'})
 }
 
 function update_user_phones() {

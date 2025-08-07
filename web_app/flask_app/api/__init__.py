@@ -1,0 +1,272 @@
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial, wraps
+from urllib.parse import urlparse
+
+from flask import session, current_app, Blueprint, request
+from flask_restx import Api, Resource, fields
+
+__all__ = ["apib"]
+
+from web_app.flask_app.app_with_tokens import AppWithTokens
+from wxc_sdk.devices import ProductType
+from wxc_sdk.locations import Location
+
+from wxc_sdk.people import Person
+from wxc_sdk.person_settings.call_intercept import InterceptSetting
+from wxc_sdk.rest import RestError
+from wxc_sdk.telephony import NumberListPhoneNumber
+from wxc_sdk.telephony.callqueue import CallQueue
+from wxc_sdk.telephony.hg_and_cq import Agent
+
+log = logging.getLogger(__name__)
+
+apib = Blueprint('api', __name__, url_prefix='/api')
+
+api = Api(apib,
+          title='Frontend API',
+          version='1.0',
+          description='API for user frontend',
+          doc='/docs',
+          default='Frontend API',
+          default_label='Frontend API')
+
+def assert_user(func):
+    """
+    Decorator to assert that a user is logged in.
+    If not, returns a 401 Unauthorized response.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        user = session.get('user')
+        if not user:
+            return {'error': 'User not logged in'}, 401
+        return func(*args, **kwargs)
+    return wrapper
+
+@api.route('/userinfo')
+class UserInfo(Resource):
+    """
+    Endpoint to get user information.
+    """
+
+    @staticmethod
+    @assert_user
+    def get():
+        """
+        Get user information including location details and phone numbers for the logged-in user.
+        """
+        user = session.get('user')
+        user: Person
+        ca: AppWithTokens = current_app
+        capi = ca.api
+        # get location details and number for user
+        log.debug(f'"/userinfo": getting location details and numbers')
+        tasks = [
+            lambda: capi.locations.details(location_id=user.location_id),
+            lambda: list(capi.telephony.phone_numbers(owner_id=user.person_id))
+        ]
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            location, numbers = list(executor.map(lambda f: f(), tasks))
+        location: Location
+        numbers: list[NumberListPhoneNumber]
+
+        # noinspection PyUnboundLocalVariable
+        numbers.sort(key=lambda n: n.phone_number_type, reverse=True)
+        # noinspection PyUnboundLocalVariable
+        return dict(numbers=[n.model_dump(mode='json') for n in numbers],
+                    location_name=location.name), 200
+
+
+@api.route('/userphones')
+class UserPhones(Resource):
+    """
+    Get phones of current user
+    """
+
+    @staticmethod
+    @assert_user
+    def get():
+        """
+        Get phones of current user.
+        """
+
+        def mac_with_colons(mac: str) -> str:
+            octets = (mac[i:i + 2] for i in range(0, len(mac), 2))
+            return ':'.join(octets)
+
+        user = session.get('user')
+        user: Person
+        ca: AppWithTokens = current_app
+        try:
+            log.debug(f'"/userphones": getting user phones')
+            devices = list(ca.api.devices.list(person_id=user.person_id))
+        except RestError as e:
+            log.error(f'"/userphones": getting user phones failed: {e}')
+            return {'success': False,
+                    'message': f'{e}'}
+        log.debug(f'"/userphones": returning device data')
+        return {'success': True,
+                'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
+                         for device in devices
+                         if device.product_type == ProductType.phone]}
+
+
+@api.route('/userqueues')
+class UserQueues(Resource):
+    """
+    Endpoint to get data for the table of queues for a user
+        * GET: get data to put into the table
+            * queue name
+            * location name
+            * queue extension
+            * tuple (enabled, location and queue id)
+        * POST: update the joined state of the user in one queue
+    """
+
+    @staticmethod
+    @assert_user
+    def get():
+        """
+        Get data for the table of queues for a user.
+        """
+        user = session.get('user')
+        user: Person
+
+        # get the current app
+        ca: AppWithTokens = current_app
+        ca_api = ca.api
+
+        # get the path for logging
+        path = urlparse(request.url).path
+        # get all call queues
+        log.debug(f'"{path}": getting list of call queues')
+        queues = list(ca_api.telephony.callqueue.list())
+        # get details for all call queues
+        log.debug(f'"{path}": getting call queue details')
+        tasks = [partial(ca_api.telephony.callqueue.details, location_id=queue.location_id,
+                         queue_id=queue.id) for queue in queues]
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # run the tasks in parallel
+            details = list(executor.map(lambda f: f(), tasks))
+        details: list[CallQueue]
+        # identify queues the user is agent in
+        # noinspection PyUnboundLocalVariable
+        queues_with_user = [(queue, detail, agent)
+                            for detail, queue in zip(details, queues)
+                            if (agent := next((agent
+                                               for agent in detail.agents
+                                               if agent.agent_id == user.person_id),
+                                              None))]
+        queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
+        log.debug(f'"{path}": returning user/queue information')
+        return {'success': True,
+                'rows': [[queue.name,
+                          queue.location_name,
+                          queue.extension,
+                          (agent.join_enabled, f'{queue.location_id}.{queue.id}', detail.allow_agent_join_enabled)]
+                         for queue, detail, agent in queues_with_user]}
+
+    PostUserQueues = api.model('PostUserQueues', {
+        'id': fields.String(required=True, description='Location and queue id in format "location_id.queue_id"'),
+        'checked': fields.Boolean(required=True,
+                                  description='True if the user should be joined to the queue, False otherwise')
+    })
+
+    @staticmethod
+    @api.expect(PostUserQueues, validate=True)
+    @assert_user
+    def post():
+        """
+        Update agent join state for one queue.
+        """
+        user = session.get('user')
+        user: Person
+
+        # get the current app
+        ca: AppWithTokens = current_app
+        ca_api = ca.api
+
+        # get the path for logging
+        path = urlparse(request.url).path
+
+        # get parameters from the validated payload
+        location_id, queue_id = api.payload['id'].split('.')
+        joined = api.payload['checked']
+
+        # get queue info and update queue
+        log.debug(f'"{path}": getting call queue details')
+        detail = ca_api.telephony.callqueue.details(location_id=location_id, queue_id=queue_id)
+
+        # find agent to modify
+        agent = next(ag for ag in detail.agents if ag.agent_id == user.person_id)
+
+        # set the new join state
+        agent.join_enabled = joined
+
+        # update the queue
+        log.debug(f'"{path}": updating call queue details for "{detail.name}"')
+        ca_api.telephony.callqueue.update(location_id=location_id, queue_id=queue_id, update=detail)
+        log.debug(f'"{path}": success')
+        return {'success': True}
+
+@api.route('/useroptions')
+class UserOptions(Resource):
+    """
+    Endpoint to get/update user options
+    For now only a single
+    """
+
+    @staticmethod
+    @assert_user
+    def get():
+        """
+        Get user options.
+        """
+        user = session.get('user')
+        # if not user:
+        #     return {'error': 'User not logged in'}, 401
+        user: Person
+        ca: AppWithTokens = current_app
+        capi = ca.api
+        path = urlparse(request.url).path
+        log.debug(f'"{path} getting call intercept and call waiting status')
+        tasks = [
+            lambda: capi.person_settings.call_intercept.read(entity_id=user.person_id),
+            lambda: capi.person_settings.call_waiting.read(entity_id=user.person_id)
+        ]
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            call_intercept, call_waiting = list(executor.map(lambda f: f(), tasks))
+        call_intercept: InterceptSetting
+        call_waiting: bool
+        log.debug(f'"{path}": returning intercept and call waiting status')
+        # noinspection PyUnboundLocalVariable
+        return {'success': True,
+                'callIntercept': call_intercept.enabled,
+                'callWaiting': call_waiting}
+
+    PostUserOptions = api.model('PostUserOptions', {
+        'id': fields.String(required=True, description='callIntercept or callWaiting'),
+        'checked': fields.Boolean(required=True, description='True if option is enabled, False otherwise')})
+
+    @api.expect(PostUserOptions, validate=True)
+    @assert_user
+    def post(self):
+        user = session.get('user')
+        user: Person
+        ca: AppWithTokens = current_app
+        capi = ca.api
+        path = urlparse(request.url).path
+        checked = api.payload['checked']
+        checkbox_id = api.payload['id']
+        if checkbox_id == 'callIntercept':
+            update = InterceptSetting(enabled=checked)
+            log.debug(f'"{path}": updating call intercept: {checked}')
+            capi.person_settings.call_intercept.configure(entity_id=user.person_id, intercept=update)
+        elif checkbox_id == 'callWaiting':
+            log.debug(f'"{path}": updating call waiting: {checked}')
+            capi.person_settings.call_waiting.configure(entity_id=user.person_id, enabled=checked)
+        else:
+            return {'success': False, 'message': f'unexpected checkbox id "{checkbox_id}"'}
+        log.debug(f'"{path}": return success')
+        return {'success': True}

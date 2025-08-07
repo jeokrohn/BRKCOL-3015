@@ -1,5 +1,5 @@
 function get_user_info() {
-    return $.ajax({type: 'GET', url: '/userinfo'})
+    return $.ajax({type: 'GET', url: '/api/userinfo'})
 }
 
 function refresh_user_info() {
