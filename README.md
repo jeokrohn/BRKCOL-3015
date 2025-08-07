@@ -124,7 +124,7 @@ With the parameters in the `.env` file set there are two options to start the lo
 ![](.README_images/start%20docker.gif)
 
 With the local web server started, either by executing `app.py` or by running the server in a Docker container, you can
-point your web browser to http://localhost:5000. This should redirect you to a page from where you can initiate the
+point your web browser to http://localhost:5010. This should redirect you to a page from where you can initiate the
 login via Webex. After successfully authenticating as a Webex Calling user within the organization you created the
 service app tokens for you should get to the Dashboard that shows the phones of the users and the call queues the user
 is an agent in. In the last column of the call queue table the user can then join and unjoin each queue (if that is

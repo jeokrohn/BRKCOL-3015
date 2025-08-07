@@ -2,7 +2,7 @@ services:
   web_app:
     build: .
     ports:
-      - "5000:5000"
+      - "5010:5010"
 #    volumes:
 #      - ./web_app:/app
 

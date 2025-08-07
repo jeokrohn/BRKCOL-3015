@@ -8,7 +8,7 @@ from flask_restx import Api, Resource, fields
 
 __all__ = ["apib"]
 
-from web_app.flask_app.app_with_tokens import AppWithTokens
+from ..app_with_tokens import AppWithTokens
 from wxc_sdk.devices import ProductType
 from wxc_sdk.locations import Location
 

@@ -43,6 +43,9 @@ oauth = OAuth()
 # register Webex OIDC provider used for login via Webex
 # documentation: https://developer.webex.com/docs/login-with-webex
 # endpoint URLs are here: https://developer.webex.com/docs/login-with-webex#oauth-20-and-openid-connect-api-endpoints
+
+# client ID and secret are stored app config, which is initialized in the create_app() function
+# in flask_app/__init__.py with values from the .env file: WEBEX_CLIENT_ID and WEBEX_CLIENT_SECRET.
 webex = oauth.register('webex',
                        # server_metadata_url='https://webexapis.com/v1/.well-known/openid-configuration',
                        access_token_url='https://webexapis.com/v1/access_token',
