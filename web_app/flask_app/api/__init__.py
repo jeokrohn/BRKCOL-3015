@@ -31,18 +31,22 @@ api = Api(apib,
           default='Frontend API',
           default_label='Frontend API')
 
+
 def assert_user(func):
     """
     Decorator to assert that a user is logged in.
-    If not, returns a 401 Unauthorized response.
+    If not, return a 401 Unauthorized.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         user = session.get('user')
         if not user:
             return {'error': 'User not logged in'}, 401
         return func(*args, **kwargs)
+
     return wrapper
+
 
 @api.route('/userinfo')
 class UserInfo(Resource):
@@ -55,6 +59,9 @@ class UserInfo(Resource):
     def get():
         """
         Get user information including location details and phone numbers for the logged-in user.
+        Returns a JSON object with:
+            * numbers: List of phone numbers associated with the user, each represented as a JSON object
+            * location_name: Name of the user's location
         """
         user = session.get('user')
         user: Person
@@ -89,6 +96,12 @@ class UserPhones(Resource):
     def get():
         """
         Get phones of current user.
+        Returns a JSON object with:
+            * success: True if the operation was successful
+            * rows: List of phone data rows. Each row in the table will contain:
+                * product: Product name of the phone
+                * mac: MAC address of the phone in colon-separated format
+                * connection_status: Connection status of the phone
         """
 
         def mac_with_colons(mac: str) -> str:
@@ -129,6 +142,17 @@ class UserQueues(Resource):
     def get():
         """
         Get data for the table of queues for a user.
+
+        Response has:
+        * success: True if the operation was successful
+        * rows: List of queue data rows. Each row in the table will contain:
+            * queue name
+            * location name
+            * queue extension
+            * tuple (enabled, location and queue id, allow_agent_join_enabled) where
+                * enabled is True if the user is joined to the queue, False otherwise
+                * location and queue id is in format "location_id.queue_id"
+                * allow_agent_join_enabled is True if the user can join the queue
         """
         user = session.get('user')
         user: Person
@@ -139,11 +163,16 @@ class UserQueues(Resource):
 
         # get the path for logging
         path = urlparse(request.url).path
+
         # get all call queues
         log.debug(f'"{path}": getting list of call queues')
         queues = list(ca_api.telephony.callqueue.list())
+
         # get details for all call queues
         log.debug(f'"{path}": getting call queue details')
+
+        # create a list of tasks to get details for each queue
+        # using ThreadPoolExecutor to run them in parallel
         tasks = [partial(ca_api.telephony.callqueue.details, location_id=queue.location_id,
                          queue_id=queue.id) for queue in queues]
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -160,6 +189,14 @@ class UserQueues(Resource):
                                               None))]
         queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
         log.debug(f'"{path}": returning user/queue information')
+        # each row in the table will contain:
+        #   * queue name
+        #   * location name
+        #   * queue extension
+        #   * tuple (enabled, location and queue id, allow_agent_join_enabled)
+        #     where enabled is True if the user is joined to the queue, False otherwise
+        #     and location and queue id is in format "location_id.queue_id"
+        #     and allow_agent_join_enabled is True if the user can join the queue
         return {'success': True,
                 'rows': [[queue.name,
                           queue.location_name,
@@ -210,18 +247,28 @@ class UserQueues(Resource):
         log.debug(f'"{path}": success')
         return {'success': True}
 
+
 @api.route('/useroptions')
 class UserOptions(Resource):
     """
-    Endpoint to get/update user options
-    For now only a single
+    Endpoint to get/update user options (call intercept and call waiting).
+    * GET: get user options
+        * callIntercept: True if call intercept is enabled, False otherwise
+        * callWaiting: True if call waiting is enabled, False otherwise
+    * POST: update user options
+        * id: 'callIntercept' or 'callWaiting'
+        * checked: True if the option is enabled, False otherwise
     """
 
     @staticmethod
     @assert_user
     def get():
         """
-        Get user options.
+        Get user options (call intercept and call waiting).
+        Returns a JSON object with:
+            * success: True if the operation was successful
+            * callIntercept: True if call intercept is enabled, False otherwise
+            * callWaiting: True if call waiting is enabled, False otherwise
         """
         user = session.get('user')
         # if not user:
@@ -252,6 +299,15 @@ class UserOptions(Resource):
     @api.expect(PostUserOptions, validate=True)
     @assert_user
     def post(self):
+        """
+        Update user options (call intercept and call waiting).
+        Expects a JSON payload with:
+            * id: 'callIntercept' or 'callWaiting'
+            * checked: True if the option should be enabled, False otherwise
+        Returns a JSON object with:
+            * success: True if the operation was successful, False otherwise
+            * message: error message if the operation failed
+        """
         user = session.get('user')
         user: Person
         ca: AppWithTokens = current_app
