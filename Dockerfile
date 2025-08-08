@@ -21,7 +21,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 COPY pyproject.toml uv.lock* ./
 
 # Install dependencies
-RUN uv sync --locked --no-dev
+RUN uv sync --locked --no-dev --compile-bytecode
 
 FROM base AS runtime
 

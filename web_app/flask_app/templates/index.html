@@ -134,7 +134,11 @@
             // Handle clicks on checkboxes in call queue table
             // ... by POSTing the checkbox value and the value (location and queue id) to the endpoint
             $('#userQueues tbody').on('change', 'input[type="checkbox"]', function () {
-                console.log(this.checked, this.value)
+                console.log("#userQueues tbody change:", this.checked, this.value)
+                // POST the checkbox value and the id to the server
+                // this.value is the value of the checkbox: concatenated location and queue id
+                // this.checked is the state of the checkbox (true or false)
+                // the endpoint will update the user queues
                 $.ajax({
                     type: 'POST',
                     url: '/api/userqueues',
@@ -148,6 +152,11 @@
 
             // Handle clicks in user options card
             $('#userOptions').on('change', 'input[type="checkbox"]', function () {
+                console.log("#userOptions change:", this.checked, this.id)
+                // POST the checkbox value and the id to the endpoint
+                // this.id is the id of the checkbox, e.g. "callIntercept" or "callWaiting"
+                // this.checked is the state of the checkbox (true or false)
+                // the endpoint will update the user options
                 $.ajax({
                     type: 'POST',
                     url: '/api/useroptions',
@@ -158,7 +167,6 @@
                 })
             });
             refresh_user_options()
-
         });
     </script>
 {% endblock %}
