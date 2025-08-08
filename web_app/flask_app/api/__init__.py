@@ -5,19 +5,18 @@ from urllib.parse import urlparse
 
 from flask import session, current_app, Blueprint, request
 from flask_restx import Api, Resource, fields
-
-__all__ = ["apib"]
-
-from ..app_with_tokens import AppWithTokens
+from werkzeug.exceptions import UnsupportedMediaType
 from wxc_sdk.devices import ProductType
 from wxc_sdk.locations import Location
-
 from wxc_sdk.people import Person
 from wxc_sdk.person_settings.call_intercept import InterceptSetting
 from wxc_sdk.rest import RestError
 from wxc_sdk.telephony import NumberListPhoneNumber
 from wxc_sdk.telephony.callqueue import CallQueue
 from wxc_sdk.telephony.hg_and_cq import Agent
+from ..app_with_tokens import AppWithTokens
+
+__all__ = ["apib"]
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +30,20 @@ api = Api(apib,
           default='Frontend API',
           default_label='Frontend API')
 
+@apib.before_request
+def before_request():
+    """
+    Before request handler to log all requests
+    """
+    log.debug(f'Request: {request.method} {request.url}')
+    if request.args:
+        log.debug(f'Request: Query parameters: {request.args}')
+    try:
+        json_data = request.get_json()
+    except UnsupportedMediaType:
+        json_data = None
+    if json_data is not None:
+        log.debug(f'Request: JSON payload: {json_data}')
 
 def assert_user(func):
     """
@@ -68,7 +81,7 @@ class UserInfo(Resource):
         ca: AppWithTokens = current_app
         capi = ca.api
         # get location details and number for user
-        log.debug(f'"/userinfo": getting location details and numbers')
+        log.debug(f'"/api/userinfo": getting location details and numbers')
         tasks = [
             lambda: capi.locations.details(location_id=user.location_id),
             lambda: list(capi.telephony.phone_numbers(owner_id=user.person_id))
@@ -111,14 +124,15 @@ class UserPhones(Resource):
         user = session.get('user')
         user: Person
         ca: AppWithTokens = current_app
+        path = urlparse(request.url).path
         try:
-            log.debug(f'"/userphones": getting user phones')
+            log.debug(f'"{path}": getting user phones')
             devices = list(ca.api.devices.list(person_id=user.person_id))
         except RestError as e:
-            log.error(f'"/userphones": getting user phones failed: {e}')
+            log.error(f'"{path}": getting user phones failed: {e}')
             return {'success': False,
                     'message': f'{e}'}
-        log.debug(f'"/userphones": returning device data')
+        log.debug(f'"{path}": returning device data')
         return {'success': True,
                 'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
                          for device in devices
