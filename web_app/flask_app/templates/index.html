@@ -92,10 +92,10 @@
                 searching: false,
                 data: [],   // Data is empty and will be dynamically added by update_user_queues
                 columns: [
-                    {title: "Name"},
-                    {title: "Location"},
-                    {title: "Extension"},
-                    {title: "Joined"}
+                    {title: "Name", data:"name"},
+                    {title: "Location", data:"location"},
+                    {title: "Extension", data:"extension"},
+                    {title: "Joined", data: "join_info"}
                 ],
                 // last column is rendered as checkboxes
                 // each checkbox value has the location and queue id of the queue
@@ -105,10 +105,27 @@
                     'className': 'dt-body-center',
                     // render function for column 3
                     'render': function (data, type, full, meta) {
-                        // unpack the values from the data array
-                        const is_checked = data[0]
-                        const location_and_queue_id = data[1]
-                        const allow_join_enabled = data[2]
+                        /**
+                         * Render function for the "Joined" column in the user queues table.
+                         * It returns a checkbox if the user can join/unjoin the queue,
+                         * or a text indicating whether the user is joined or not.
+                         *
+                         * @param data - the data for the row
+                         * @param type - the type of data (e.g. 'display', 'filter', etc.)
+                         * @param full - the full data for the row
+                         * @param meta - metadata about the row
+                         */
+
+                        /**
+                         * @typedef {Object} data
+                         * @property {boolean} joined - whether the user is joined to the queue
+                         * @property {string} location_and_queue_id - concatenated location and queue id
+                         * @property {boolean} allow_join_enabled - whether the user can join/unjoin the queue
+                         */
+                        const is_checked = data.joined
+                        const location_and_queue_id = data.location_and_queue_id
+                        const allow_join_enabled = data.allow_join_enabled
+                        // console.log("is_checked:", is_checked, "location_and_queue_id:", location_and_queue_id, "allow_join_enabled:", allow_join_enabled)
                         if (allow_join_enabled) {
                             if (is_checked) {
                                 checked = " checked "

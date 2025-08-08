@@ -14,6 +14,7 @@ function update_user_queues() {
         if (data["success"] == false) {
             status.textContent = "Error: " + data["message"]
         } else {
+            // clear the table and add new rows
             status.textContent = ""
             $('#userQueues').DataTable().clear()
             $('#userQueues').DataTable().rows.add(data['rows'])
