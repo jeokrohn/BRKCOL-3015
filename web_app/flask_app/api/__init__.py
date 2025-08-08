@@ -146,13 +146,13 @@ class UserQueues(Resource):
         Response has:
         * success: True if the operation was successful
         * rows: List of queue data rows. Each row in the table will contain:
-            * queue name
-            * location name
-            * queue extension
-            * tuple (enabled, location and queue id, allow_agent_join_enabled) where
-                * enabled is True if the user is joined to the queue, False otherwise
-                * location and queue id is in format "location_id.queue_id"
-                * allow_agent_join_enabled is True if the user can join the queue
+            * name: queue name
+            * location: location name
+            * extension: queue extension
+            * join_info:
+                * joined: True if the user is joined to the queue, False otherwise
+                * location_and_queue_id: location and queue id is in format "location_id.queue_id"
+                * allow_join_enabled: True if the user can join the queue
         """
         user = session.get('user')
         user: Person
@@ -190,18 +190,20 @@ class UserQueues(Resource):
         queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
         log.debug(f'"{path}": returning user/queue information')
         # each row in the table will contain:
-        #   * queue name
-        #   * location name
-        #   * queue extension
-        #   * tuple (enabled, location and queue id, allow_agent_join_enabled)
-        #     where enabled is True if the user is joined to the queue, False otherwise
-        #     and location and queue id is in format "location_id.queue_id"
-        #     and allow_agent_join_enabled is True if the user can join the queue
+        #   * name: queue name
+        #   * location: location name
+        #   * extension: queue extension
+        #   * join_info:
+        #       * joined: True if the user is joined to the queue, False otherwise
+        #       * location_and_queue_id: location and queue id is in format "location_id.queue_id"
+        #       * allow_join_enabled: True if the user can join the queue
         return {'success': True,
-                'rows': [[queue.name,
-                          queue.location_name,
-                          queue.extension,
-                          (agent.join_enabled, f'{queue.location_id}.{queue.id}', detail.allow_agent_join_enabled)]
+                'rows': [{'name': queue.name,
+                          'location': queue.location_name,
+                          'extension': queue.extension,
+                          'join_info': {'joined': agent.join_enabled,
+                                        'location_and_queue_id': f'{queue.location_id}.{queue.id}',
+                                        'allow_join_enabled': detail.allow_agent_join_enabled}}
                          for queue, detail, agent in queues_with_user]}
 
     PostUserQueues = api.model('PostUserQueues', {
