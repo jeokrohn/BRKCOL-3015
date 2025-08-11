@@ -3,7 +3,7 @@ FROM python:3.11-alpine AS base
 FROM base AS python-deps
 
 # The uv installer requires curl (and certificates) to download the release archive
-RUN apk add curl ca-certificates
+RUN apk add curl ca-certificates git
 
 # Download the latest installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
