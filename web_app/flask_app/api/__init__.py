@@ -13,6 +13,7 @@ from wxc_sdk.person_settings.call_intercept import InterceptSetting
 from wxc_sdk.rest import RestError
 from wxc_sdk.telephony import NumberListPhoneNumber
 from wxc_sdk.telephony.callqueue import CallQueue
+from wxc_sdk.telephony.callqueue.agents import CallQueueAgentQueue
 from wxc_sdk.telephony.hg_and_cq import Agent
 from ..app_with_tokens import AppWithTokens
 
@@ -30,6 +31,7 @@ api = Api(apib,
           default='Frontend API',
           default_label='Frontend API')
 
+
 @apib.before_request
 def before_request():
     """
@@ -44,6 +46,7 @@ def before_request():
         json_data = None
     if json_data is not None:
         log.debug(f'Request: JSON payload: {json_data}')
+
 
 def assert_user(func):
     """
@@ -134,7 +137,9 @@ class UserPhones(Resource):
                     'message': f'{e}'}
         log.debug(f'"{path}": returning device data')
         return {'success': True,
-                'rows': [[device.product, mac_with_colons(device.mac), device.connection_status]
+                'rows': [{'model': device.product,
+                          'mac': mac_with_colons(device.mac),
+                          'status': device.connection_status}
                          for device in devices
                          if device.product_type == ProductType.phone]}
 
@@ -171,6 +176,22 @@ class UserQueues(Resource):
         user = session.get('user')
         user: Person
 
+        def get_agent_queues(agent_id: str, has_cx_essentials: bool) -> list[CallQueueAgentQueue]:
+            """
+            get list of queues the user is agent of and catch 404 errors
+            :param agent_id: ID of the agent to get queues for
+            :param has_cx_essentials: True if the agent has CX essentials, False otherwise
+            :return: list of CallQueueAgentQueue objects
+            """
+            try:
+                detail = ca_api.telephony.callqueue.agents.details(id=agent_id, has_cx_essentials=has_cx_essentials,
+                                                                   max_=50)
+                return detail.queues
+            except RestError as e:
+                if e.response.status_code == 404:
+                    return []
+                raise
+
         # get the current app
         ca: AppWithTokens = current_app
         ca_api = ca.api
@@ -178,30 +199,35 @@ class UserQueues(Resource):
         # get the path for logging
         path = urlparse(request.url).path
 
-        # get all call queues
-        log.debug(f'"{path}": getting list of call queues')
-        queues = list(ca_api.telephony.callqueue.list())
+        # get agent details w/ and w/o CX essentials
+        log.debug(f'"{path}": getting agent details with and without CX essentials')
+        tasks = [
+            lambda: get_agent_queues(agent_id=user.person_id, has_cx_essentials=False),
+            lambda: get_agent_queues(agent_id=user.person_id, has_cx_essentials=True)]
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            agent_queues, agent_queues_with_cx_essentials = list(executor.map(lambda f: f(), tasks))
+        agent_queues: list[CallQueueAgentQueue]
+        # noinspection PyUnboundLocalVariable
+        agent_queues.extend(agent_queues_with_cx_essentials)
 
-        # get details for all call queues
-        log.debug(f'"{path}": getting call queue details')
-
-        # create a list of tasks to get details for each queue
-        # using ThreadPoolExecutor to run them in parallel
-        tasks = [partial(ca_api.telephony.callqueue.details, location_id=queue.location_id,
-                         queue_id=queue.id) for queue in queues]
+        # get details for the call queues the user is agent of
+        log.debug(f'"{path}": getting call queue details for {len(agent_queues)} queues the user is agent of')
+        tasks = [partial(ca_api.telephony.callqueue.details, location_id=agent_queue.location_id,
+                         queue_id=agent_queue.id)
+                 for agent_queue in agent_queues]
+        details = []
         with ThreadPoolExecutor(max_workers=10) as executor:
             # run the tasks in parallel
             details = list(executor.map(lambda f: f(), tasks))
         details: list[CallQueue]
-        # identify queues the user is agent in
-        # noinspection PyUnboundLocalVariable
+
         queues_with_user = [(queue, detail, agent)
-                            for detail, queue in zip(details, queues)
+                            for detail, queue in zip(details, agent_queues)
                             if (agent := next((agent
                                                for agent in detail.agents
                                                if agent.agent_id == user.person_id),
                                               None))]
-        queues_with_user: list[tuple[CallQueue, CallQueue, Agent]]
+        queues_with_user: list[tuple[CallQueueAgentQueue, CallQueue, Agent]]
         log.debug(f'"{path}": returning user/queue information')
         # each row in the table will contain:
         #   * name: queue name
@@ -220,6 +246,8 @@ class UserQueues(Resource):
                                         'allow_join_enabled': detail.allow_agent_join_enabled}}
                          for queue, detail, agent in queues_with_user]}
 
+    # parameter type for the POST request
+    # to update the user join state in a queue
     PostUserQueues = api.model('PostUserQueues', {
         'id': fields.String(required=True, description='Location and queue id in format "location_id.queue_id"'),
         'checked': fields.Boolean(required=True,
