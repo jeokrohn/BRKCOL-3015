@@ -26,7 +26,7 @@ requires-dist = [
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "requests" },
-    { name = "wxc-sdk", git = "https://github.com/jeokrohn/wxc_sdk.git" },
+    { name = "wxc-sdk", specifier = ">=1.26.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -740,8 +740,8 @@ wheels = [
 
 [[package]]
 name = "wxc-sdk"
-version = "1.25.0"
-source = { git = "https://github.com/jeokrohn/wxc_sdk.git#767d0acba910b5c2cd5295dca70b5882bb7c1bbb" }
+version = "1.26.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aenum" },
     { name = "aiohttp" },
@@ -751,6 +751,10 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "requests-toolbelt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/48/04a3191b342638b24ef50c68ed9b83847913bd6d43035c78bd5c91ec6bf8/wxc_sdk-1.26.0.tar.gz", hash = "sha256:e8460aeb20f85786494e6c9e5de44b12d2f251d879b151f4c2c3a593486a70b6", size = 547236, upload-time = "2025-08-13T11:26:10.096Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/47/852aad0a12d5186e76fbf1ca943b450ff794f11095cdbcc66aeedd766940/wxc_sdk-1.26.0-py3-none-any.whl", hash = "sha256:0e3a1e40286d4f42cd685470dc4e6d41748f7db3d0f5efc65998dd1ffcb7d98a", size = 666291, upload-time = "2025-08-13T11:26:08.28Z" },
 ]
 
 [[package]]
