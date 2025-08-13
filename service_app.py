@@ -101,5 +101,5 @@ def test_service_app():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     test_service_app()
