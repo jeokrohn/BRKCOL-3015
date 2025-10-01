@@ -24,6 +24,7 @@ def main():
         print(f'{len(data["items"])} locations found')
         for location in data['items']:
             print(location)
+            print()
 
         # look for locations in California
         ca_locations = [location for location in data['items']
