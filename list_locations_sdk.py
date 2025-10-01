@@ -20,6 +20,7 @@ def main():
         print(f'{len(locations)} locations found')
         for location in locations:
             print(location)
+            print()
 
         ca_locations = [location for location in locations
                         if location.address.state == 'CA']

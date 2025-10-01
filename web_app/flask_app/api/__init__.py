@@ -200,7 +200,7 @@ class UserQueues(Resource):
         path = urlparse(request.url).path
 
         # get agent details w/ and w/o CX essentials
-        log.debug(f'"{path}": getting agent details with and without CX essentials')
+        log.debug(f'"{path}": getting agent queues with and without customer assist')
         tasks = [
             lambda: get_agent_queues(agent_id=user.person_id, has_cx_essentials=False),
             lambda: get_agent_queues(agent_id=user.person_id, has_cx_essentials=True)]
