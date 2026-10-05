@@ -163,3 +163,4 @@ cython_debug/
 *.yml
 /web_app/sessions/
 !/docker-compose.yml
+/node_modules/
