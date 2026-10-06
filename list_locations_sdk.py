@@ -4,7 +4,6 @@ Demonstration of how to call a Webex API endpoint using the SDK
 """
 import os
 
-
 from dotenv import load_dotenv
 from wxc_sdk import WebexSimpleApi
 

@@ -3,10 +3,9 @@
 Demonstration of how to call a Webex API endpoint using the SDK with cached integration tokens
 """
 import os
-from os.path import splitext, basename, join, dirname
+from os.path import dirname, join
 
 from dotenv import load_dotenv
-
 from wxc_sdk import WebexSimpleApi
 from wxc_sdk.integration import Integration
 from wxc_sdk.scopes import parse_scopes
