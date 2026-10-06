@@ -47,6 +47,51 @@ animation:
 
 ![](.README_images/list_locations_sdk.gif)
 
+## `manage_call_queue_agents.py`
+
+AI generated script: see file header for prompt.
+
+This script reads call queue agents and their join states, and can bulk-update join state or queue membership. It uses
+the `WEBEX_TOKEN` environment variable (loaded from `.env` when present), or a token passed with `--token`. The token
+needs `spark-admin:telephony_config_read` for reads, `spark-admin:telephony_config_write` for changes, and
+`spark-admin:people_read` when using `--add` so the script can resolve people by name or email.
+
+Examples:
+
+```sh
+# Read queues in every location
+python manage_call_queue_agents.py
+
+# Read selected queues at one location
+python manage_call_queue_agents.py --location "Seattle" --queue "Support" "Billing"
+
+# Join every current agent in the selected queue(s)
+python manage_call_queue_agents.py --queue "Support" --join all
+
+# Unjoin one agent, add another, and remove a third
+python manage_call_queue_agents.py --queue "Support" \
+  --unjoin "Alex Example" --add alex@example.com --remove "Morgan Example"
+
+# Preview requested changes without writing to Webex
+python manage_call_queue_agents.py --queue "Support" --join all --dry-run
+
+# Provide the token directly
+python manage_call_queue_agents.py --token "$WEBEX_TOKEN" --queue "Support"
+
+# Log detailed Webex API traffic to stderr
+python manage_call_queue_agents.py --queue "Support" --log-api
+
+# Write the same API log to a file
+python manage_call_queue_agents.py --queue "Support" --log-api webex-api.log
+```
+
+Queue names and locations are matched case-insensitively. Agent selectors can be Webex IDs, email addresses, or exact
+display names. If a queue name exists in more than one location and no location is selected, the operation applies to
+each matching queue. Adding an agent initially sets that agent's queue join state to joined; `--unjoin` can be used in
+the same invocation to leave the newly added agent unjoined. The script prints the current roster and requested
+changes, and `--dry-run` skips all writes.
+`--log-api` enables detailed API request and response logging; it writes to stderr unless a file path is provided.
+
 ## `list_locations_sdk_int_tokens.py`
 
 This is a demo of how to call a Webex API endpoint using the SDK with cached integration tokens. For this script to
