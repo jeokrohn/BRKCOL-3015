@@ -47,5 +47,5 @@ typing-extensions==4.16.0
 typing-inspection==0.4.4
 urllib3==2.8.0
 werkzeug==3.1.9
-wxc-sdk==1.40.1
+wxc-sdk==1.41.0
 yarl==1.25.1
