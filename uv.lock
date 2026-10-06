@@ -3,36 +3,6 @@ revision = 2
 requires-python = "==3.11.*"
 
 [[package]]
-name = ""
-version = "0.0.1"
-source = { virtual = "." }
-dependencies = [
-    { name = "authlib" },
-    { name = "flask", extra = ["async"] },
-    { name = "flask-restx" },
-    { name = "flask-session" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "wxc-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "authlib" },
-    { name = "flask", extras = ["async"] },
-    { name = "flask-restx", specifier = ">=1.3.0" },
-    { name = "flask-session" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "wxc-sdk", specifier = ">=1.26.0" },
-]
-
-[package.metadata.requires-dev]
-dev = []
-
-[[package]]
 name = "aenum"
 version = "3.1.17"
 source = { registry = "https://pypi.org/simple" }
@@ -157,6 +127,36 @@ sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e0485151
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
 ]
+
+[[package]]
+name = "brkcol-3015"
+version = "0.0.1"
+source = { virtual = "." }
+dependencies = [
+    { name = "authlib" },
+    { name = "flask", extra = ["async"] },
+    { name = "flask-restx" },
+    { name = "flask-session" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "requests" },
+    { name = "wxc-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "authlib" },
+    { name = "flask", extras = ["async"] },
+    { name = "flask-restx", specifier = ">=1.3.0" },
+    { name = "flask-session" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "requests" },
+    { name = "wxc-sdk", specifier = ">=1.26.0" },
+]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "cachelib"
@@ -796,7 +796,7 @@ wheels = [
 
 [[package]]
 name = "wxc-sdk"
-version = "1.40.1"
+version = "1.41.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aenum" },
@@ -808,9 +808,9 @@ dependencies = [
     { name = "requests" },
     { name = "requests-toolbelt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/a1/af12eeeb2b1149203e990c482b37ad19396334524e01d5c077e93046bb95/wxc_sdk-1.40.1.tar.gz", hash = "sha256:9ac4ce2207b0dec79805e2a942657bd6801b41db9de51e095a8b8337157f0425", size = 735488, upload-time = "2026-10-04T15:37:24.03Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/70/7f5fe2f0435827bb8a3832742c332eab3412cbbdd9e6f843ad6c8d7c96b1/wxc_sdk-1.41.0.tar.gz", hash = "sha256:c963ffe5d621441f0980d2901bcd85190868437ec7f38de742157193bd527f8e", size = 735926, upload-time = "2026-10-06T02:13:17.301Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/40/f16b7dad9e5ea1f368f7a4d6b101ff94ab00abce398a5dc06db48d5b3116/wxc_sdk-1.40.1-py3-none-any.whl", hash = "sha256:ed04a04d0b78af3c93e78a6dd15b4f832c2ddfa385766d4436a81d418ceb7eaa", size = 891521, upload-time = "2026-10-04T15:37:22.119Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/3f/4208d850a824b40ef6614a2690b75790bb4d8272702d5636753bc5518fd0/wxc_sdk-1.41.0-py3-none-any.whl", hash = "sha256:55257bb7d7b2c80676bc1aa4e230b057c09165d96864e5e788c52607e84c9041", size = 891815, upload-time = "2026-10-06T02:13:15.504Z" },
 ]
 
 [[package]]

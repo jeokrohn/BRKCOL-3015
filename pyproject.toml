@@ -1,5 +1,5 @@
 [project]
-name = ""
+name = "brkcol-3015"
 version = "0.0.1"
 requires-python = ">=3.11.0, <3.12"
 dependencies = [
