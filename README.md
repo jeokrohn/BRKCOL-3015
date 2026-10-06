@@ -1,14 +1,19 @@
-# Examples for BRKCOL-3015 at Cisco Live US '23
+# Examples for session "Agile Management of Webex Calling - There is an API for that"
 
 # Preparing the environment
 
 To prepare a Python environment it's
-highly recommended to use [pipenv](https://docs.pipenv.org/en/latest/index.html) to manage Python virtual environments.
-Pls. follow the instructions at https://docs.pipenv.org/en/latest/basics.html.
+highly recommended to use [uv](https://docs.astral.sh/uv/) as packet manager to manage Python virtual environments.
+To install `uv`pls. follow the instructions at https://docs.astral.sh/uv/#installation.
 
-With `pipenv` installed in the main directory of the project you can simply install the project requirements with
+With `uv` installed in the main directory of the project you can simply install the project requirements with
 
-    pipenv install
+    uv lock
+    uv sync
+
+This creates a virtual environment in the `.venv` folder and installs all required packages. To activate the virtual environment you can use    
+
+    source .venv/bin/activate
 
 # Running the examples
 
