@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Read and bulk-update Webex Calling call queue agent membership and join state.
 
-This script is created using ChatGPT and is intended for demonstration purposes. It may not be suitable for production use without further testing and validation.
+This script is created using ChatGPT and is intended for demonstration purposes. It may not be suitable for production
+use without further testing and validation.
 
 Prompt:
 
