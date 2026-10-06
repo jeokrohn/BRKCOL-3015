@@ -28,7 +28,7 @@ def main():
 
         # look for locations in California
         ca_locations = [location for location in data['items']
-                        if location['address']['state'] == 'CA']
+                        if location['address'].get('state') == 'CA']
         print()
         print(f'{len(ca_locations)} locations in CA')
         print(', '.join(loc['name'] for loc in ca_locations))
