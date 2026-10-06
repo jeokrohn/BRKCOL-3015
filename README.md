@@ -29,12 +29,12 @@ from https://developer.webex.com/docs/getting-started.
 
 This animation shows the process to get a developer access token:
 
-![](.README_images/personal%20access%20token.gif)
+![](presentation/animations/personal%20access%20token.gif)
 
 With the environment variable set the script can be executed directly from the command line as shown in the following
 animation:
 
-![](.README_images/list_locations_direct.gif)
+![](presentation/animations/list_locations_direct.gif)
 
 ## `list_locations_sdk.py`
 
@@ -45,7 +45,7 @@ SDK.
 The script can be executed directly from the command line as shown in the following
 animation:
 
-![](.README_images/list_locations_sdk.gif)
+![](presentation/animations/list_locations_sdk.gif)
 
 ## `manage_call_queue_agents.py`
 
@@ -132,7 +132,7 @@ access token is obtained using the refresh token.
 
 This animation shows the execution of this script:
 
-![](.README_images/integration%20tokens.gif)
+![](presentation/animations/integration%20tokens.gif)
 
 # The web application
 
@@ -171,7 +171,7 @@ With the parameters in the `.env` file set there are two options to start the lo
    installed the server can be started by `docker-compose up -d` followed by `docker-compose logs -f` to see the logs.
    The animation below shows how the output of this should look like.
 
-![](.README_images/start%20docker.gif)
+![](presentation/animations/start%20docker.gif)
 
 With the local web server started, either by executing `app.py` or by running the server in a Docker container, you can
 point your web browser to http://localhost:5010. This should redirect you to a page from where you can initiate the
@@ -181,7 +181,7 @@ is an agent in. In the last column of the call queue table the user can then joi
 allowed). If you enable the developer console of the browser you can monitor the network activity which also shows the
 Ajax requests from the client side Javascript logic.
 
-![](.README_images/portal%20access.gif)
+![](presentation/animations/portal%20access.gif)
 
 
 This is the overall project structure of the web app:
