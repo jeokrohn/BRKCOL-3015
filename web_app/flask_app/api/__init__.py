@@ -184,10 +184,13 @@ class UserQueues(Resource):
             :return: list of CallQueueAgentQueue objects
             """
             try:
+                log.debug(f'"{path}": getting agent queues for agent_id={agent_id}, has_cx_essentials={has_cx_essentials}')
                 detail = ca_api.telephony.callqueue.agents.details(id=agent_id, has_cx_essentials=has_cx_essentials,
                                                                    max_=50)
+                log.debug(f'"{path}": got {len(detail.queues)} agent queues for agent_id={agent_id}, has_cx_essentials={has_cx_essentials}')
                 return detail.queues
             except RestError as e:
+                log.debug(f'"{path}": getting agent queues failed: {e}')
                 if e.response.status_code == 404:
                     return []
                 raise
