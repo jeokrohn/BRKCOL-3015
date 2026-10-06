@@ -26,9 +26,8 @@ import argparse
 import logging
 import os
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
-from typing import Iterator
 
 from dotenv import load_dotenv
 from wxc_sdk import WebexSimpleApi
